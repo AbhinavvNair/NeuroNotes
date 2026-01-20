@@ -1,0 +1,7 @@
+torch
+sentencepiece
+fastapi
+uvicorn
+gradio
+huggingface_hub
+numpy
