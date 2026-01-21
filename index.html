@@ -3,60 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NeuroNotes AI</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <title>NeuroNotes Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
     
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
     <div class="app-container">
-        
         <aside class="sidebar">
             <div class="logo-section">
-                <i class="fa-solid fa-brain logo-icon"></i>
+                <i class="fa-solid fa-layer-group logo-icon"></i>
                 <h2>NeuroNotes</h2>
             </div>
             
             <nav class="nav-menu">
                 <button class="nav-btn active" id="newNoteBtn">
-                    <i class="fa-solid fa-pen-to-square"></i> New Note
+                    <i class="fa-solid fa-plus"></i> New Note
                 </button>
-
+                
                 <div class="nav-section">
                     <button class="nav-btn" id="historyToggle">
-                        <i class="fa-solid fa-clock-rotate-left"></i> History
-                        <i class="fa-solid fa-chevron-down arrow"></i>
+                        <i class="fa-solid fa-clock-rotate-left"></i> History <i class="fa-solid fa-chevron-down arrow"></i>
                     </button>
                     <div id="historyList" class="nav-list" style="display: none;"></div>
                 </div>
 
                 <div class="nav-section">
                     <button class="nav-btn" id="savedToggle">
-                        <i class="fa-solid fa-bookmark"></i> Saved
-                        <i class="fa-solid fa-chevron-down arrow"></i>
+                        <i class="fa-solid fa-bookmark"></i> Saved <i class="fa-solid fa-chevron-down arrow"></i>
                     </button>
                     <div id="savedList" class="nav-list" style="display: none;"></div>
                 </div>
 
                 <button class="nav-btn" id="settingsBtn">
-                    <i class="fa-solid fa-gear"></i> Settings
+                    <i class="fa-solid fa-sliders"></i> Settings
                 </button>
             </nav>
             
             <div class="sidebar-bottom">
-                <button class="nav-btn" id="themeToggle">
-                    <i class="fa-solid fa-moon"></i> Dark Mode
-                </button>
+                <button class="nav-btn" id="themeToggle"><i class="fa-solid fa-moon"></i> Dark Mode</button>
                 <div class="user-card">
                     <div class="user-avatar">YS</div>
                     <div class="user-info">
                         <span class="name">Yuvraj Singh</span>
-                        <span class="role">Student Plan</span>
+                        <span class="role">Pro Plan</span>
                     </div>
                 </div>
             </div>
@@ -65,15 +59,15 @@
         <main class="main-content">
             <header class="top-header">
                 <div class="header-titles">
-                    <h1>Software Engineering Notes</h1>
-                    <span class="badge">Draft</span>
+                    <h1>Workspace</h1>
+                    <span class="badge">Stable</span>
                 </div>
                 <div class="header-actions">
-                    <button class="action-btn secondary" id="exportBtn" title="Export to Text">
-                        <i class="fa-solid fa-download"></i>
+                    <button class="action-btn secondary" id="studyBtn" title="Start Flashcards">
+                        <i class="fa-solid fa-graduation-cap"></i> Study
                     </button>
                     <button class="action-btn primary" id="processBtn">
-                        <i class="fa-solid fa-wand-magic-sparkles"></i> Refine with AI
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Refine
                     </button>
                 </div>
             </header>
@@ -82,21 +76,27 @@
                 <div class="panel input-panel">
                     <div class="panel-head">
                         <span class="panel-title"><i class="fa-regular fa-keyboard"></i> Raw Input</span>
+                        <span id="inputStats" class="stats-text">0 words</span>
                     </div>
-                    <textarea id="userInput" placeholder="Paste your rough class notes here..."></textarea>
+                    <textarea id="userInput" placeholder="Type notes here...&#10;&#10;Format for Flashcards:&#10;Term : Definition&#10;Question : Answer"></textarea>
+                    
+                    <div class="panel-footer">
+                        <span class="status-indicator"><i class="fa-solid fa-circle-info"></i> Ready. Type 'Term : Definition' to study.</span>
+                    </div>
                 </div>
 
                 <div class="panel output-panel">
                     <div class="panel-head">
-                        <span class="panel-title"><i class="fa-solid fa-robot"></i> AI Output</span>
+                        <span class="panel-title"><i class="fa-solid fa-robot"></i> Output</span>
                         <div class="panel-actions">
-                            <button class="icon-btn" id="bookmarkBtn" title="Bookmark This Note"><i class="fa-regular fa-bookmark"></i></button>
-                            <button class="icon-btn" id="copyBtn" title="Copy to Clipboard"><i class="fa-regular fa-copy"></i></button>
+                            <button class="icon-btn" id="visualizeBtn" title="Visualize Diagram"><i class="fa-solid fa-diagram-project"></i></button>
+                            <button class="icon-btn" id="bookmarkBtn"><i class="fa-regular fa-bookmark"></i></button>
+                            <button class="icon-btn" id="copyBtn"><i class="fa-regular fa-copy"></i></button>
                         </div>
                     </div>
                     <div id="aiOutput" class="markdown-content empty-state">
-                        <i class="fa-solid fa-arrow-left"></i>
-                        <p>Enter your notes on the left and click "Refine".</p>
+                        <i class="fa-solid fa-layer-group"></i>
+                        <p>Result appears here</p>
                     </div>
                 </div>
             </div>
@@ -105,34 +105,19 @@
 
     <div id="settingsModal" class="modal-overlay hidden">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3>Settings</h3>
-                <button id="closeSettings" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
-            </div>
+            <div class="modal-header"><h3>Settings</h3><button id="closeSettings" class="icon-btn"><i class="fa-solid fa-xmark"></i></button></div>
             <div class="modal-body">
                 <div class="setting-group">
                     <label>Gemini API Key</label>
-                    <input type="password" id="apiKeyInput" placeholder="Paste key here...">
-                    <p class="hint">Stored locally in your browser.</p>
+                    <input type="password" id="apiKeyInput" placeholder="Enter Key...">
                 </div>
-                <div class="setting-group danger-zone">
-                    <label>Data Management</label>
-                    <button id="clearDataBtn" class="danger-btn">
-                        <i class="fa-solid fa-trash"></i> Clear History & Saved
-                    </button>
-                </div>
+                <button id="clearDataBtn" class="danger-btn">Clear History</button>
             </div>
-            <div class="modal-footer">
-                <button class="save-btn" id="saveSettingsBtn">Save Changes</button>
-            </div>
+            <div class="modal-footer"><button id="saveSettingsBtn" class="save-btn">Save</button></div>
         </div>
     </div>
-
-    <div id="toast" class="toast">
-        <i class="fa-solid fa-circle-check"></i> 
-        <span>Action Successful</span>
-    </div>
-
+    
+    <div id="toast" class="toast">Action Complete</div>
     <script src="script.js"></script>
 </body>
 </html>
