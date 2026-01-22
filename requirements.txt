@@ -2,6 +2,7 @@ torch
 sentencepiece
 fastapi
 uvicorn
-gradio
-huggingface_hub
+pydantic
 numpy
+datasets
+tqdm
