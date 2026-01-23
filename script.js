@@ -1,9 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const rawInput = document.getElementById('rawInput');
-    const refineBtn = document.getElementById('refineBtn');
-    const aiOutput = document.getElementById('aiOutput');
+    // --- FIX: UPDATED IDS TO MATCH YOUR HTML ---
+    const rawInput = document.getElementById('userInput');   // Changed from 'rawInput'
+    const refineBtn = document.getElementById('processBtn'); // Changed from 'refineBtn'
+    const aiOutput = document.getElementById('aiOutput');    // This one was already correct
 
-    // 1. Safety Check: Do the HTML elements exist?
+    // 1. Safety Check
     if (!rawInput || !refineBtn || !aiOutput) {
         console.error("CRITICAL ERROR: HTML elements not found. Check IDs in index.html");
         return;
@@ -19,6 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Show loading state
         refineBtn.disabled = true;
+        // Save original text to restore it later
+        const originalBtnText = refineBtn.innerHTML;
         refineBtn.textContent = "Generating...";
         aiOutput.innerHTML = '<div class="empty-state">Thinking...</div>';
 
@@ -31,8 +34,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 body: JSON.stringify({
                     prompt: text,
-                    max_tokens: 200,    // Length of the story
-                    temperature: 0.7    // Creativity
+                    max_tokens: 200,
+                    temperature: 0.7
                 })
             });
 
@@ -42,12 +45,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await response.json();
 
-            // 3. THE FIX: Check if data.response actually exists
+            // 3. Safety Guard
             if (data && data.response) {
-                // Parse Markdown safely
                 aiOutput.innerHTML = marked.parse(data.response);
             } else {
-                // If the brain sends back nothing, don't crash—just tell us.
                 aiOutput.innerHTML = '<p style="color:red">Error: Empty response from AI.</p>';
                 console.error("Backend response structure:", data);
             }
@@ -58,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             // Reset button
             refineBtn.disabled = false;
-            refineBtn.textContent = "Refine with AI";
+            refineBtn.innerHTML = originalBtnText; // Restore the icon
         }
     });
 });
