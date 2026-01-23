@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const refineBtn = document.getElementById('refineBtn');
     const aiOutput = document.getElementById('aiOutput');
 
-    // 1. Check if elements exist to prevent crashes
+    // 1. Safety Check: Do the HTML elements exist?
     if (!rawInput || !refineBtn || !aiOutput) {
         console.error("CRITICAL ERROR: HTML elements not found. Check IDs in index.html");
         return;
@@ -31,8 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 body: JSON.stringify({
                     prompt: text,
-                    max_tokens: 200,    // You can adjust this length
-                    temperature: 0.7    // Creativity (0.0 to 1.0)
+                    max_tokens: 200,    // Length of the story
+                    temperature: 0.7    // Creativity
                 })
             });
 
@@ -42,12 +42,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await response.json();
 
-            // 3. Safety Check: Did we get a response?
-            // The backend sends { "response": "..." }
+            // 3. THE FIX: Check if data.response actually exists
             if (data && data.response) {
                 // Parse Markdown safely
                 aiOutput.innerHTML = marked.parse(data.response);
             } else {
+                // If the brain sends back nothing, don't crash—just tell us.
                 aiOutput.innerHTML = '<p style="color:red">Error: Empty response from AI.</p>';
                 console.error("Backend response structure:", data);
             }
