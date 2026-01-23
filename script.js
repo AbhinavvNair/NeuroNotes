@@ -1,121 +1,62 @@
 document.addEventListener('DOMContentLoaded', () => {
-    mermaid.initialize({ startOnLoad: false, theme: 'dark' });
-
-    // DOM ELEMENTS
+    
+    // 1. SELECT ELEMENTS
     const userInput = document.getElementById('userInput');
     const aiOutput = document.getElementById('aiOutput');
     const processBtn = document.getElementById('processBtn');
-    const visualizeBtn = document.getElementById('visualizeBtn');
-    const studyBtn = document.getElementById('studyBtn'); // Study Button
-    const inputStats = document.getElementById('inputStats');
-    const toast = document.getElementById('toast');
 
-    // --- 1. REFINE TEXT ---
+    // 2. BACKEND URL
+    const API_URL = "http://127.0.0.1:8000/generate";
+
+    // 3. EVENT LISTENER
     processBtn.addEventListener('click', async () => {
         const text = userInput.value.trim();
-        if(!text) { showToast("Enter text first"); return; }
         
+        if (!text) {
+            alert("Please enter some text first!");
+            return;
+        }
+
+        // LOCK UI
         processBtn.disabled = true;
-        processBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Refining...';
-        await new Promise(r => setTimeout(r, 600)); 
-        
-        const refined = smartFormat(text);
-        aiOutput.innerHTML = marked.parse(refined);
-        aiOutput.classList.remove('empty-state');
-        
-        processBtn.disabled = false;
-        processBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Refine';
-        showToast("Notes Refined");
-    });
-
-    // --- 2. VISUALIZE ---
-    visualizeBtn.addEventListener('click', async () => {
-        const text = userInput.value.trim();
-        if(!text) { showToast("Enter diagram code"); return; }
-
-        aiOutput.innerHTML = '<div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Rendering...</p></div>';
-        await new Promise(r => setTimeout(r, 500));
+        processBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...';
+        aiOutput.innerHTML = `
+            <div class="empty-state" style="opacity: 0.8;">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                <p>EduLLM is thinking...</p>
+            </div>
+        `;
 
         try {
-            let graph = text;
-            if(!text.includes('graph') && !text.includes('->')) {
-                graph = `graph TD\nA[Start] --> B[${text.substring(0,10)}...]\nB --> C{Process}\nC -->|Yes| D[Done]`;
-            } else if (!text.includes('graph')) {
-                graph = `graph TD\n${text}`;
+            // CALL PYTHON
+            const response = await fetch(API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ prompt: text })
+            });
+
+            const data = await response.json();
+
+            // DISPLAY RESULT
+            if (window.marked) {
+                aiOutput.innerHTML = marked.parse(data.generated_text);
+            } else {
+                aiOutput.innerText = data.generated_text;
             }
 
-            const uid = `mermaid-${Date.now()}`;
-            aiOutput.innerHTML = `<div class="mermaid" id="${uid}">${graph}</div>`;
-            aiOutput.classList.remove('empty-state');
-            await mermaid.run({ nodes: [document.getElementById(uid)] });
-            showToast("Diagram Generated");
-        } catch (e) {
-            aiOutput.innerHTML = `<p style="color:#ef4444; padding:20px;">Syntax Error.</p>`;
+        } catch (error) {
+            console.error("Error:", error);
+            aiOutput.innerHTML = `
+                <div style="color: #ef4444; padding: 20px; text-align: center;">
+                    <i class="fa-solid fa-triangle-exclamation"></i><br>
+                    <strong>Connection Failed</strong><br>
+                    Is the backend running?
+                </div>
+            `;
         }
+
+        // UNLOCK UI
+        processBtn.disabled = false;
+        processBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Refine with AI';
     });
-
-    // --- STUDY MODE ---
-    let cards = []; let cardIndex = 0;
-    studyBtn.addEventListener('click', () => {
-        const text = userInput.value.trim();
-        if(!text) { showToast("Enter notes (Term : Definition)"); return; }
-
-        cards = parseCards(text);
-        if(cards.length === 0) { showToast("No terms found. Use 'Term : Definition'"); return; }
-
-        cardIndex = 0;
-        renderCard();
-        showToast("Study Mode Started");
-    });
-
-    function parseCards(text) {
-        return text.split('\n').reduce((acc, line) => {
-            if(line.includes(':')) {
-                const [front, back] = line.split(':');
-                acc.push({front: front.trim(), back: back.trim()});
-            }
-            return acc;
-        }, []);
-    }
-    function renderCard() {
-        if(cardIndex >= cards.length) { showToast("End of Deck"); return; }
-        const c = cards[cardIndex];
-        aiOutput.innerHTML = `<div class="flashcard-container"><div class="flashcard" onclick="this.classList.toggle('flipped')"><div class="card-face card-front"><p>${c.front}</p><span style="font-size:0.75rem; color:grey; margin-top:auto;">(Click to Flip)</span></div><div class="card-face card-back"><p>${c.back}</p></div></div><div class="card-controls"><button class="control-btn" onclick="prevCard()">Prev</button><span>${cardIndex + 1}/${cards.length}</span><button class="control-btn" onclick="nextCard()">Next</button></div></div>`;
-        aiOutput.classList.remove('empty-state');
-    }
-
-    // Window functions for HTML onclick
-    window.nextCard = () => { if(cardIndex < cards.length - 1) { cardIndex++; renderCard(); } };
-    window.prevCard = () => { if(cardIndex > 0) { cardIndex--; renderCard(); } };
-
-    // --- UTILS ---
-    userInput.addEventListener('input', () => {
-        inputStats.innerText = `${userInput.value.trim().split(/\s+/).length} words`;
-    });
-
-    function smartFormat(text) {
-        if(text.includes("def ") || text.includes("{")) return `# 💻 Code\n\`\`\`javascript\n${text}\n\`\`\``;
-        let lines = text.split('\n').filter(l => l.trim());
-        let bullets = lines.map(l => `* ${l.charAt(0).toUpperCase() + l.slice(1)}`).join('\n');
-        return `# 📝 Refined Notes\n\n${bullets}`;
-    }
-
-    function showToast(msg) {
-        toast.innerText = msg;
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 2000);
-    }
-    
-    // Toggles
-    const toggle = (id, listId) => {
-        document.getElementById(id).addEventListener('click', () => {
-            const el = document.getElementById(listId);
-            el.style.display = el.style.display === 'none' ? 'flex' : 'none';
-        });
-    }
-    toggle('historyToggle', 'historyList');
-    toggle('savedToggle', 'savedList');
-    
-    document.getElementById('settingsBtn').addEventListener('click', () => document.getElementById('settingsModal').classList.remove('hidden'));
-    document.getElementById('closeSettings').addEventListener('click', () => document.getElementById('settingsModal').classList.add('hidden'));
 });

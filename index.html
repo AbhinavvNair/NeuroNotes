@@ -6,130 +6,77 @@
     <title>EduSummariser Dashboard</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
 
     <div class="app-container">
+        
         <aside class="sidebar">
             <div class="logo-section">
                 <i class="fa-solid fa-brain"></i> EduSummariser
             </div>
-            
-            <nav class="nav-menu">
-                <button class="nav-btn active" id="newNoteBtn">
-                    <i class="fa-solid fa-plus"></i> New Note
-                </button>
-                
-                <div class="nav-section">
-                    <button class="nav-btn" id="historyToggle">
-                        <i class="fa-solid fa-clock-rotate-left"></i> History <i class="fa-solid fa-chevron-down arrow"></i>
-                    </button>
-                    <div id="historyList" class="nav-list" style="display: none;"></div>
-                </div>
 
-                <div class="nav-section">
-                    <button class="nav-btn" id="savedToggle">
-                        <i class="fa-solid fa-bookmark"></i> Saved <i class="fa-solid fa-chevron-down arrow"></i>
-                    </button>
-                    <div id="savedList" class="nav-list" style="display: none;"></div>
-                </div>
-
-                <button class="nav-btn" id="settingsBtn">
-                    <i class="fa-solid fa-sliders"></i> Settings
+            <div class="nav-menu">
+                <button class="nav-btn active">
+                    <i class="fa-solid fa-pen-to-square"></i> Workspace
                 </button>
-            </nav>
-            
+                <button class="nav-btn">
+                    <i class="fa-solid fa-clock-rotate-left"></i> History
+                </button>
+                <button class="nav-btn">
+                    <i class="fa-solid fa-gear"></i> Settings
+                </button>
+            </div>
+
             <div class="sidebar-bottom">
                 <div class="user-card">
-                    <div class="user-avatar">YS</div>
+                    <div class="user-avatar">A</div>
                     <div class="user-info">
-                        <span class="name">Yuvraj Singh</span>
-                        <span class="role">Pro Plan</span>
+                        <span class="name">Abhinav</span>
+                        <span class="role">Admin</span>
                     </div>
                 </div>
             </div>
         </aside>
 
-        <main class="main-content" id="mainContent">
-            <header class="top-header" id="topHeader">
+        <main class="main-content">
+            <header class="top-header">
                 <div class="header-titles">
-                    <h1>Workspace</h1>
-                    <span class="badge">Stable</span>
-                </div>
-                <div class="header-actions">
-                    <button class="action-btn secondary" id="studyBtn" title="Start Flashcards">
-                        <i class="fa-solid fa-graduation-cap"></i> Study
-                    </button>
-                    <button class="action-btn primary" id="processBtn">
-                        <i class="fa-solid fa-wand-magic-sparkles"></i> Refine
-                    </button>
+                    <h1>Dashboard</h1>
+                    <span class="badge">Model: EduLLM-Mini</span>
                 </div>
             </header>
 
             <div class="workspace">
-                <div class="panel input-panel">
+                
+                <div class="panel">
                     <div class="panel-head">
-                        <span class="panel-title"><i class="fa-regular fa-keyboard"></i> Raw Input</span>
-                        <span id="inputStats" class="stats-text">0 words</span>
+                        <span class="panel-title">Raw Input</span>
                     </div>
-                    <textarea id="userInput" placeholder="Type notes here...&#10;&#10;Format for Flashcards:&#10;Term : Definition&#10;Question : Answer"></textarea>
-                    
+                    <textarea id="userInput" placeholder="Paste your text here, or start a sentence..."></textarea>
                     <div class="panel-footer">
-                        <span class="status-indicator"><i class="fa-solid fa-circle-info"></i> Ready. Type 'Term : Definition' to study.</span>
+                        <button class="action-btn primary" id="processBtn">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Refine with AI
+                        </button>
                     </div>
                 </div>
 
-                <div class="panel output-panel">
+                <div class="panel">
                     <div class="panel-head">
-                        <span class="panel-title"><i class="fa-solid fa-robot"></i> Output</span>
-                        <div class="panel-actions">
-                            <button class="icon-btn" id="visualizeBtn" title="Visualize Diagram"><i class="fa-solid fa-diagram-project"></i></button>
-                            <button class="icon-btn" id="bookmarkBtn"><i class="fa-regular fa-bookmark"></i></button>
-                            <button class="icon-btn" id="copyBtn"><i class="fa-regular fa-copy"></i></button>
-                        </div>
+                        <span class="panel-title">AI Output</span>
                     </div>
                     <div id="aiOutput" class="markdown-content">
                         <div class="empty-state">
-                            <i class="fa-solid fa-robot"></i>
+                            <i class="fa-solid fa-robot" style="font-size: 2rem; margin-bottom: 10px;"></i>
                             <p>AI output will appear here...</p>
                         </div>
                     </div>
-
-                    <div class="audio-player">
-                        <div class="audio-info">
-                            <i class="fa-solid fa-podcast"></i> <span>Podcast Mode</span>
-                        </div>
-                        <div class="audio-controls">
-                            <button class="audio-btn" id="stopAudioBtn"><i class="fa-solid fa-stop"></i></button>
-                            <button class="audio-btn main-play" id="playAudioBtn"><i class="fa-solid fa-play"></i></button>
-                            <button class="audio-btn speed" id="speedBtn">1x</button>
-                        </div>
-                    </div>
-
                 </div>
             </div>
-            
-            <button id="exitFocusBtn" class="hidden"><i class="fa-solid fa-compress"></i> Exit Focus</button>
         </main>
     </div>
 
-    <div id="settingsModal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <div class="modal-header"><h3>Settings</h3><button id="closeSettings" class="icon-btn"><i class="fa-solid fa-xmark"></i></button></div>
-            <div class="modal-body">
-                <div class="setting-group">
-                    <label>Gemini API Key</label>
-                    <input type="password" id="apiKeyInput" placeholder="Enter Key...">
-                </div>
-                <button id="clearDataBtn" class="danger-btn">Clear History</button>
-            </div>
-            <div class="modal-footer"><button id="saveSettingsBtn" class="save-btn">Save</button></div>
-        </div>
-    </div>
-    
-    <div id="toast" class="toast">Action Complete</div>
     <script src="script.js"></script>
 </body>
 </html>
