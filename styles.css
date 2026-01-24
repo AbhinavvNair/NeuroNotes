@@ -11,10 +11,9 @@ body { font-family: 'Outfit', sans-serif; height: 100vh; background-color: var(-
 
 .app-container { display: flex; width: 100%; height: 100%; }
 
-/* SIDEBAR */
+/* SIDEBAR & LAYOUT (Same as before) */
 .sidebar { width: 260px; background: var(--bg-sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 24px; z-index: 10; transition: margin-left 0.3s ease; }
 .sidebar.hidden { margin-left: -260px; } 
-
 .logo-section { display: flex; align-items: center; gap: 12px; margin-bottom: 30px; color: var(--primary); font-size: 1.2rem; font-weight: 700; }
 .nav-menu { flex: 1; display: flex; flex-direction: column; gap: 8px; }
 .nav-btn { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: transparent; border: none; border-radius: 8px; color: var(--text-muted); font-size: 0.95rem; cursor: pointer; width: 100%; text-align: left; }
@@ -30,7 +29,6 @@ body { font-family: 'Outfit', sans-serif; height: 100vh; background-color: var(-
 .user-info .name { font-size: 0.9rem; font-weight: 600; }
 .user-info .role { font-size: 0.75rem; color: var(--text-muted); }
 
-/* MAIN */
 .main-content { flex: 1; display: flex; flex-direction: column; position: relative; }
 .top-header { height: 60px; background: var(--bg-app); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; padding: 0 32px; transition: height 0.3s, opacity 0.3s; }
 .top-header.hidden { height: 0; opacity: 0; overflow: hidden; padding: 0; border: none; }
@@ -41,19 +39,21 @@ body { font-family: 'Outfit', sans-serif; height: 100vh; background-color: var(-
 .action-btn.secondary:hover { color: #fff; border-color: var(--text-muted); }
 .action-btn.primary { background: var(--primary); color: white; }
 
-/* WORKSPACE */
 .workspace { flex: 1; display: flex; gap: 20px; padding: 20px; overflow: hidden; transition: padding 0.3s; }
 .workspace.zen { padding: 40px 15%; }
-
-/* --- PANEL FIX: min-width: 0 prevents flex overflow --- */
 .panel { flex: 1; min-width: 0; background: var(--bg-panel); border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow); transition: flex 0.3s; }
 .panel.hidden { display: none; } 
-
 .panel-head { height: 45px; padding: 0 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); }
 .panel-title { font-weight: 600; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; }
 .template-bar { display: flex; gap: 8px; }
 .chip { padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font-size: 0.75rem; cursor: pointer; }
 .chip:hover { color: #fff; background: rgba(255,255,255,0.05); }
+
+/* --- NEW: MIC BUTTON --- */
+.mic-btn { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+.mic-btn:hover { color: #fff; border-color: var(--primary); }
+.mic-btn.recording { color: #ef4444; border-color: #ef4444; background: rgba(239, 68, 68, 0.1); animation: pulse 1.5s infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
 textarea { flex: 1; resize: none; border: none; padding: 20px; font-family: inherit; font-size: 1rem; line-height: 1.6; background: var(--bg-input); color: var(--text-main); outline: none; margin: 1px; }
 .panel-footer { padding: 8px 15px; border-top: 1px solid var(--border); font-size: 0.75rem; color: var(--text-muted); background: rgba(0,0,0,0.2); }
@@ -61,19 +61,7 @@ textarea { flex: 1; resize: none; border: none; padding: 20px; font-family: inhe
 .markdown-content { flex: 1; padding: 20px; overflow-y: auto; line-height: 1.7; color: var(--text-main); background: var(--bg-input); }
 .icon-btn { width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; background: transparent; border: none; color: var(--text-muted); cursor: pointer; }
 .icon-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
-
-/* --- PRE TAG FIX: Forces wrapping so it doesn't widen --- */
-pre { 
-    background: #000; 
-    padding: 15px; 
-    border-radius: 6px; 
-    border: 1px solid var(--border); 
-    margin: 10px 0; 
-    overflow-x: auto; 
-    white-space: pre-wrap; /* Key fix for text wrapping */
-    word-wrap: break-word; /* Ensures long words break */
-    max-width: 100%;
-}
+pre { background: #000; padding: 15px; border-radius: 6px; border: 1px solid var(--border); margin: 10px 0; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; max-width: 100%; }
 
 .audio-player { height: 50px; background: rgba(0,0,0,0.3); border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; }
 .audio-info { display: flex; align-items: center; gap: 10px; font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
