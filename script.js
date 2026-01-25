@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     mermaid.initialize({ startOnLoad: false, theme: 'dark' });
 
-    // DOM ELEMENTS
+    // --- DOM ELEMENTS ---
     const userInput = document.getElementById('userInput');
     const aiOutput = document.getElementById('aiOutput');
     const newNoteBtn = document.getElementById('newNoteBtn');
@@ -12,68 +12,166 @@ document.addEventListener('DOMContentLoaded', () => {
     const exitFocusBtn = document.getElementById('exitFocusBtn'); 
     const toast = document.getElementById('toast');
     
-    const micBtn = document.getElementById('micBtn'); // NEW
+    // Audio / Voice
+    const micBtn = document.getElementById('micBtn');
     const playAudioBtn = document.getElementById('playAudioBtn');
     const stopAudioBtn = document.getElementById('stopAudioBtn');
     const speedBtn = document.getElementById('speedBtn');
     
+    // Layout
     const sidebar = document.getElementById('sidebar');
     const topHeader = document.getElementById('topHeader');
     const outputPanel = document.getElementById('outputPanel');
     const workspace = document.getElementById('workspace');
     
+    // Storage
     const historyList = document.getElementById('historyList');
     const savedList = document.getElementById('savedList');
+    
+    // Command Palette
+    const cmdPalette = document.getElementById('cmdPalette');
+    const cmdInput = document.getElementById('cmdInput');
+    const cmdResults = document.getElementById('cmdResults');
+
+    // Load Data
     loadList('notesHistory', historyList);
     loadList('savedNotes', savedList);
 
-    // --- NEW: SPEECH RECOGNITION (DICTATION) ---
-    // Check if browser supports it
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let recognition;
+    // ==========================================
+    // 1. COMMAND PALETTE (FIXED LOGIC)
+    // ==========================================
     
-    if(SpeechRecognition) {
-        recognition = new SpeechRecognition();
-        recognition.continuous = false; // Stop after one sentence
-        recognition.lang = 'en-US';
-        recognition.interimResults = false;
-
-        micBtn.addEventListener('click', () => {
-            if(micBtn.classList.contains('recording')) {
-                recognition.stop();
-            } else {
-                try {
-                    recognition.start();
-                    micBtn.classList.add('recording');
-                    showToast("Listening...");
-                } catch(e) {
-                    showToast("Error starting mic");
-                }
-            }
-        });
-
-        recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript;
-            // Append text with a space if needed
-            userInput.value += (userInput.value.length > 0 ? ' ' : '') + transcript;
-            // Trigger input event to update word count
-            userInput.dispatchEvent(new Event('input'));
-        };
-
-        recognition.onend = () => {
-            micBtn.classList.remove('recording');
-        };
-
-        recognition.onerror = (event) => {
-            micBtn.classList.remove('recording');
-            showToast("Mic Error: " + event.error);
-        };
-    } else {
-        micBtn.style.display = 'none'; // Hide if not supported
-        console.log("Speech Recognition not supported in this browser");
+    function togglePalette() {
+        if(!cmdPalette) return;
+        
+        // Check if it is currently visible
+        const isHidden = cmdPalette.classList.contains('hidden');
+        
+        if (isHidden) {
+            // OPEN: Remove hidden first, then fade in
+            cmdPalette.classList.remove('hidden');
+            // Small delay to let browser render "display:flex" before animating opacity
+            setTimeout(() => cmdPalette.classList.add('show'), 10);
+            cmdInput.value = '';
+            cmdInput.focus();
+            renderCommands(''); 
+        } else {
+            // CLOSE: Fade out first, then hide
+            cmdPalette.classList.remove('show');
+            setTimeout(() => cmdPalette.classList.add('hidden'), 200); // Wait for CSS transition
+        }
     }
 
-    // --- NEW NOTE ---
+    // Keyboard Shortcut: Ctrl + K (or Cmd + K)
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+            e.preventDefault(); 
+            togglePalette();
+        }
+        if (e.key === 'Escape' && cmdPalette && !cmdPalette.classList.contains('hidden')) {
+            togglePalette();
+        }
+    });
+
+    // Close if clicking outside the modal
+    if(cmdPalette) {
+        cmdPalette.addEventListener('click', (e) => {
+            if (e.target === cmdPalette) togglePalette();
+        });
+    }
+
+    // Command Actions Definition
+    const actions = [
+        { title: "New Note", icon: "fa-plus", tag: "Action", action: () => newNoteBtn.click() },
+        { title: "Focus Mode", icon: "fa-expand", tag: "View", action: () => focusBtn.click() },
+        { title: "Podcast Play", icon: "fa-play", tag: "Audio", action: () => playAudioBtn.click() },
+        { title: "Refine Text", icon: "fa-wand-magic-sparkles", tag: "AI", action: () => processBtn.click() },
+        { title: "Visualize", icon: "fa-diagram-project", tag: "Tool", action: () => visualizeBtn.click() },
+        { title: "Study Cards", icon: "fa-graduation-cap", tag: "Study", action: () => studyBtn.click() },
+        { title: "Clear History", icon: "fa-trash", tag: "Data", action: () => { localStorage.removeItem('notesHistory'); location.reload(); } }
+    ];
+
+    // Render Logic
+    if(cmdInput) {
+        cmdInput.addEventListener('input', (e) => renderCommands(e.target.value));
+        
+        cmdInput.addEventListener('keydown', (e) => {
+            if(e.key === 'Enter') {
+                const selected = document.querySelector('.cmd-item');
+                if(selected) selected.click();
+            }
+        });
+    }
+
+    function renderCommands(query) {
+        if(!cmdResults) return;
+        cmdResults.innerHTML = '';
+        const q = query.toLowerCase();
+        
+        // Get History Items
+        let history = (JSON.parse(localStorage.getItem('notesHistory')) || []).map(h => ({
+            title: h.title,
+            icon: "fa-clock-rotate-left", 
+            tag: "History",
+            action: () => { 
+                userInput.value = h.o; 
+                aiOutput.innerHTML = marked.parse(h.r);
+                // Re-render Math and Code when loading history
+                if(window.renderMathInElement) renderMathInElement(aiOutput, { delimiters: [{left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false}] });
+                aiOutput.classList.remove('empty-state');
+                enableLiveCode();
+            }
+        }));
+
+        const allItems = [...actions, ...history].filter(item => 
+            item.title.toLowerCase().includes(q)
+        );
+
+        if(allItems.length === 0) {
+            cmdResults.innerHTML = '<div style="padding:15px; color:#64748b; text-align:center;">No commands found</div>';
+            return;
+        }
+
+        allItems.forEach((item, index) => {
+            const el = document.createElement('div');
+            el.className = `cmd-item ${index === 0 ? 'selected' : ''}`;
+            el.innerHTML = `
+                <div class="cmd-icon"><i class="fa-solid ${item.icon}"></i></div>
+                <div class="cmd-text">${item.title}</div>
+                <div class="cmd-tag">${item.tag}</div>
+            `;
+            el.onclick = () => {
+                item.action();
+                togglePalette();
+            };
+            cmdResults.appendChild(el);
+        });
+    }
+
+
+    // ==========================================
+    // 2. CORE APP LOGIC
+    // ==========================================
+
+    // SPEECH RECOGNITION
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition;
+    if(SpeechRecognition && micBtn) {
+        recognition = new SpeechRecognition();
+        recognition.continuous = false; recognition.lang = 'en-US'; recognition.interimResults = false;
+        micBtn.addEventListener('click', () => {
+            if(micBtn.classList.contains('recording')) { recognition.stop(); } 
+            else { try { recognition.start(); micBtn.classList.add('recording'); showToast("Listening..."); } catch(e) { showToast("Error starting mic"); } }
+        });
+        recognition.onresult = (e) => {
+            userInput.value += (userInput.value.length > 0 ? ' ' : '') + e.results[0][0].transcript;
+            userInput.dispatchEvent(new Event('input'));
+        };
+        recognition.onend = () => micBtn.classList.remove('recording');
+        recognition.onerror = () => micBtn.classList.remove('recording');
+    } else if (micBtn) { micBtn.style.display = 'none'; }
+
+    // NEW NOTE
     newNoteBtn.addEventListener('click', () => {
         userInput.value = '';
         aiOutput.innerHTML = `<i class="fa-solid fa-layer-group"></i><p>Result appears here</p>`;
@@ -83,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast("New Note Started");
     });
 
-    // --- AUDIO LOGIC ---
+    // AUDIO PLAYBACK
     let speech = new SpeechSynthesisUtterance();
     let isSpeaking = false;
     let speeds = [1, 1.5, 2];
@@ -91,45 +189,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     playAudioBtn.addEventListener('click', () => {
         if(isSpeaking) {
-            window.speechSynthesis.pause();
-            isSpeaking = false;
-            playAudioBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+            window.speechSynthesis.pause(); isSpeaking = false; playAudioBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
         } else {
             let textToRead = window.getSelection().toString() || aiOutput.innerText || userInput.value;
             if(!textToRead.trim()) { showToast("Nothing to read"); return; }
-            if(window.speechSynthesis.paused) {
-                window.speechSynthesis.resume();
-            } else {
-                window.speechSynthesis.cancel(); 
-                speech.text = textToRead;
-                speech.rate = speeds[speedIndex];
-                window.speechSynthesis.speak(speech);
-            }
-            isSpeaking = true;
-            playAudioBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+            if(window.speechSynthesis.paused) { window.speechSynthesis.resume(); } 
+            else { window.speechSynthesis.cancel(); speech.text = textToRead; speech.rate = speeds[speedIndex]; window.speechSynthesis.speak(speech); }
+            isSpeaking = true; playAudioBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
         }
     });
-
-    stopAudioBtn.addEventListener('click', () => {
-        window.speechSynthesis.cancel();
-        isSpeaking = false;
-        playAudioBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
-    });
-
+    stopAudioBtn.addEventListener('click', () => { window.speechSynthesis.cancel(); isSpeaking = false; playAudioBtn.innerHTML = '<i class="fa-solid fa-play"></i>'; });
     speedBtn.addEventListener('click', () => {
-        speedIndex = (speedIndex + 1) % speeds.length;
-        let newSpeed = speeds[speedIndex];
-        speedBtn.innerText = newSpeed + 'x';
-        showToast(`Speed: ${newSpeed}x`);
-        if(window.speechSynthesis.speaking) {
-            window.speechSynthesis.cancel();
-            speech.rate = newSpeed;
-            window.speechSynthesis.speak(speech);
-        }
+        speedIndex = (speedIndex + 1) % speeds.length; speedBtn.innerText = speeds[speedIndex] + 'x';
+        if(window.speechSynthesis.speaking) { window.speechSynthesis.cancel(); speech.rate = speeds[speedIndex]; window.speechSynthesis.speak(speech); }
     });
     speech.onend = () => { isSpeaking = false; playAudioBtn.innerHTML = '<i class="fa-solid fa-play"></i>'; };
 
-    // --- FOCUS MODE ---
+    // FOCUS MODE
     focusBtn.addEventListener('click', () => {
         sidebar.classList.add('hidden'); topHeader.classList.add('hidden'); outputPanel.classList.add('hidden'); workspace.classList.add('zen'); exitFocusBtn.classList.add('show'); showToast("Focus Mode Active");
     });
@@ -137,16 +213,17 @@ document.addEventListener('DOMContentLoaded', () => {
         sidebar.classList.remove('hidden'); topHeader.classList.remove('hidden'); outputPanel.classList.remove('hidden'); workspace.classList.remove('zen'); exitFocusBtn.classList.remove('show');
     });
 
-    // --- TEMPLATES ---
+    // TEMPLATES
     window.setTemplate = (type) => {
         let txt = "";
         if(type === 'general') txt = "Topic: \nDate: \n\nKey Points:\n- ";
         if(type === 'flashcard') txt = "Term : Definition\nQuestion : Answer";
-        if(type === 'code') txt = "Language: Python\n\n```python\n\n```";
+        if(type === 'code') txt = "Title: JS Loop\n\n```javascript\nfor(let i=0; i<5; i++) {\n    console.log('Count: ' + i);\n}\n```";
+        if(type === 'math') txt = "$$ E = mc^2 $$";
         userInput.value = txt; userInput.focus();
     };
 
-    // --- REFINE TEXT ---
+    // REFINE TEXT
     processBtn.addEventListener('click', async () => {
         const text = userInput.value.trim();
         if(!text) { showToast("Enter notes first"); return; }
@@ -154,14 +231,48 @@ document.addEventListener('DOMContentLoaded', () => {
         await new Promise(r => setTimeout(r, 600)); 
         const refined = smartFormat(text);
         aiOutput.innerHTML = marked.parse(refined);
+        
+        // RENDER MATH (KaTeX)
+        if(window.renderMathInElement) {
+             renderMathInElement(aiOutput, { delimiters: [{left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false}] });
+        }
+        
         aiOutput.classList.remove('empty-state');
+        enableLiveCode();
         saveToList('notesHistory', text, refined);
         loadList('notesHistory', historyList);
         processBtn.disabled = false; processBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Refine';
         showToast("Refined");
     });
 
-    // --- VISUALIZE ---
+    // LIVE CODE RUNNER
+    function enableLiveCode() {
+        const codes = aiOutput.querySelectorAll('pre code.language-javascript');
+        codes.forEach(block => {
+            const pre = block.parentElement;
+            if(pre.querySelector('.run-btn')) return; 
+            
+            const btn = document.createElement('button');
+            btn.className = 'run-btn'; btn.innerHTML = '<i class="fa-solid fa-play"></i> Run';
+            pre.style.position = 'relative'; pre.appendChild(btn);
+            
+            const outputDiv = document.createElement('div');
+            outputDiv.className = 'code-output'; outputDiv.innerText = "> Output...";
+            pre.after(outputDiv);
+            
+            btn.addEventListener('click', () => {
+                const code = block.innerText;
+                outputDiv.classList.add('show'); outputDiv.innerText = "";
+                const oldLog = console.log; const logs = [];
+                console.log = (...args) => { logs.push(args.join(' ')); };
+                try { eval(code); outputDiv.innerText = logs.length > 0 ? logs.join('\n') : "Done (No output)"; outputDiv.style.color = "#22c55e"; } 
+                catch (err) { outputDiv.innerText = "Error: " + err.message; outputDiv.style.color = "#ef4444"; }
+                console.log = oldLog;
+            });
+        });
+    }
+
+    // VISUALIZE
     visualizeBtn.addEventListener('click', async () => {
         const text = userInput.value.trim();
         if(!text) { showToast("Enter diagram code"); return; }
@@ -177,13 +288,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) { aiOutput.innerHTML = `<p style="color:#ef4444; padding:20px;">Syntax Error</p>`; }
     });
 
-    // --- STUDY MODE ---
+    // STUDY MODE
     let cards = []; let cardIndex = 0;
     studyBtn.addEventListener('click', () => {
         const text = userInput.value.trim();
         cards = text.split('\n').reduce((acc, l) => {
-            if(l.includes(':')) { const [f,b] = l.split(':'); acc.push({front:f.trim(), back:b.trim()}); }
-            return acc;
+            if(l.includes(':')) { const [f,b] = l.split(':'); acc.push({front:f.trim(), back:b.trim()}); } return acc;
         }, []);
         if(cards.length === 0) { showToast("Use 'Term : Definition'"); return; }
         cardIndex = 0; renderCard(); showToast("Study Mode");
@@ -206,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let l = JSON.parse(localStorage.getItem(k)) || []; c.innerHTML = '';
         l.forEach(i => {
             let el = document.createElement('div'); el.className='list-item'; el.innerText=i.title;
-            el.onclick = () => { userInput.value=i.o; aiOutput.innerHTML=marked.parse(i.r); aiOutput.classList.remove('empty-state'); };
+            el.onclick = () => { userInput.value=i.o; aiOutput.innerHTML=marked.parse(i.r); aiOutput.classList.remove('empty-state'); enableLiveCode(); };
             c.appendChild(el);
         });
     }

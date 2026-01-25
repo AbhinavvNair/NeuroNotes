@@ -87,3 +87,48 @@ pre { background: #000; padding: 15px; border-radius: 6px; border: 1px solid var
 .card-controls { display: flex; gap: 20px; margin-top: 20px; }
 .control-btn { background: var(--bg-sidebar); border: 1px solid var(--border); color: var(--text-main); padding: 6px 14px; border-radius: 20px; cursor: pointer; }
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+/* --- COMMAND PALETTE (GOD MODE) --- */
+.palette-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px);
+    z-index: 9999; display: flex; justify-content: center; align-items: flex-start;
+    padding-top: 100px; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.palette-overlay.show { opacity: 1; pointer-events: all; }
+
+.palette-modal {
+    width: 600px; max-width: 90%; background: #1E293B;
+    border: 1px solid #334155; border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); overflow: hidden;
+    transform: translateY(-20px); transition: transform 0.2s;
+}
+.palette-overlay.show .palette-modal { transform: translateY(0); }
+
+.palette-search {
+    display: flex; align-items: center; gap: 15px; padding: 15px 20px;
+    border-bottom: 1px solid #334155;
+}
+.palette-search i { color: #94A3B8; font-size: 1.1rem; }
+.palette-search input {
+    flex: 1; background: transparent; border: none; color: #fff;
+    font-size: 1.1rem; outline: none; font-family: inherit;
+}
+.palette-shortcut {
+    font-size: 0.75rem; background: #334155; color: #cbd5e1;
+    padding: 2px 6px; border-radius: 4px;
+}
+
+.palette-results { max-height: 300px; overflow-y: auto; padding: 8px; }
+.cmd-item {
+    display: flex; align-items: center; gap: 12px; padding: 10px 15px;
+    color: #cbd5e1; cursor: pointer; border-radius: 6px; margin-bottom: 2px;
+}
+.cmd-item:hover, .cmd-item.selected { background: #3B82F6; color: white; }
+.cmd-item .cmd-icon { width: 20px; text-align: center; }
+.cmd-item .cmd-text { flex: 1; font-size: 0.95rem; }
+.cmd-item .cmd-tag { font-size: 0.75rem; opacity: 0.6; text-transform: uppercase; }
+
+.palette-footer {
+    background: #0f172a; padding: 8px 20px; font-size: 0.75rem;
+    color: #64748b; display: flex; gap: 15px; border-top: 1px solid #334155;
+}

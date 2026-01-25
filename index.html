@@ -6,8 +6,14 @@
     <title>NeuroNotes Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -58,6 +64,7 @@
                             <button class="chip" onclick="setTemplate('general')">General</button>
                             <button class="chip" onclick="setTemplate('flashcard')">Flashcard</button>
                             <button class="chip" onclick="setTemplate('code')">Code</button>
+                            <button class="chip" onclick="setTemplate('math')">Math</button>
                         </div>
                     </div>
                     <textarea id="userInput" placeholder="Type or click the mic to speak..."></textarea>
@@ -89,6 +96,22 @@
         </main>
     </div>
     <div id="toast" class="toast">Action Complete</div>
+    
+    <div id="cmdPalette" class="palette-overlay hidden">
+        <div class="palette-modal">
+            <div class="palette-search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="cmdInput" placeholder="Type a command (e.g., 'Focus', 'New Note')..." autocomplete="off">
+                <span class="palette-shortcut">Esc</span>
+            </div>
+            <div class="palette-results" id="cmdResults"></div>
+            <div class="palette-footer">
+                <span><i class="fa-solid fa-arrow-up"></i><i class="fa-solid fa-arrow-down"></i> Navigate</span>
+                <span><i class="fa-solid fa-turn-up"></i> Select</span>
+            </div>
+        </div>
+    </div>
+    
     <script src="script.js"></script>
 </body>
 </html>
