@@ -12,89 +12,100 @@ document.addEventListener('DOMContentLoaded', () => {
     const exitFocusBtn = document.getElementById('exitFocusBtn'); 
     const toast = document.getElementById('toast');
     
-    // Audio / Voice
     const micBtn = document.getElementById('micBtn');
     const playAudioBtn = document.getElementById('playAudioBtn');
     const stopAudioBtn = document.getElementById('stopAudioBtn');
     const speedBtn = document.getElementById('speedBtn');
     
-    // Layout
     const sidebar = document.getElementById('sidebar');
     const topHeader = document.getElementById('topHeader');
     const outputPanel = document.getElementById('outputPanel');
     const workspace = document.getElementById('workspace');
     
-    // Storage
     const historyList = document.getElementById('historyList');
     const savedList = document.getElementById('savedList');
     
-    // Command Palette
     const cmdPalette = document.getElementById('cmdPalette');
     const cmdInput = document.getElementById('cmdInput');
     const cmdResults = document.getElementById('cmdResults');
 
-    // Load Data
+    // --- INITIALIZATION ---
     loadList('notesHistory', historyList);
     loadList('savedNotes', savedList);
+    
+    // 1. LOAD SAVED THEME (New!)
+    const savedTheme = localStorage.getItem('userTheme');
+    if(savedTheme) {
+        const theme = JSON.parse(savedTheme);
+        setTheme(theme.primary, theme.hover, false); // false = don't show toast on load
+    }
 
     // ==========================================
-    // 1. COMMAND PALETTE (FIXED LOGIC)
+    // 1. THEME ENGINE (NEW!)
     // ==========================================
-    
+    function setTheme(primary, hover, notify = true) {
+        document.documentElement.style.setProperty('--primary', primary);
+        document.documentElement.style.setProperty('--primary-hover', hover);
+        localStorage.setItem('userTheme', JSON.stringify({ primary, hover }));
+        
+        // Update Chart/Mermaid colors dynamically if needed (re-init often required, but simple css var works for UI)
+        if(notify) showToast("Theme Updated");
+    }
+
+    // ==========================================
+    // 2. COMMAND PALETTE
+    // ==========================================
     function togglePalette() {
         if(!cmdPalette) return;
-        
-        // Check if it is currently visible
         const isHidden = cmdPalette.classList.contains('hidden');
-        
         if (isHidden) {
-            // OPEN: Remove hidden first, then fade in
             cmdPalette.classList.remove('hidden');
-            // Small delay to let browser render "display:flex" before animating opacity
             setTimeout(() => cmdPalette.classList.add('show'), 10);
             cmdInput.value = '';
             cmdInput.focus();
             renderCommands(''); 
         } else {
-            // CLOSE: Fade out first, then hide
             cmdPalette.classList.remove('show');
-            setTimeout(() => cmdPalette.classList.add('hidden'), 200); // Wait for CSS transition
+            setTimeout(() => cmdPalette.classList.add('hidden'), 200);
         }
     }
 
-    // Keyboard Shortcut: Ctrl + K (or Cmd + K)
     document.addEventListener('keydown', (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-            e.preventDefault(); 
-            togglePalette();
+            e.preventDefault(); togglePalette();
         }
         if (e.key === 'Escape' && cmdPalette && !cmdPalette.classList.contains('hidden')) {
             togglePalette();
         }
     });
 
-    // Close if clicking outside the modal
     if(cmdPalette) {
-        cmdPalette.addEventListener('click', (e) => {
-            if (e.target === cmdPalette) togglePalette();
-        });
+        cmdPalette.addEventListener('click', (e) => { if (e.target === cmdPalette) togglePalette(); });
     }
 
-    // Command Actions Definition
+    // UPDATED ACTIONS LIST WITH THEMES
     const actions = [
+        // Core Actions
         { title: "New Note", icon: "fa-plus", tag: "Action", action: () => newNoteBtn.click() },
         { title: "Focus Mode", icon: "fa-expand", tag: "View", action: () => focusBtn.click() },
         { title: "Podcast Play", icon: "fa-play", tag: "Audio", action: () => playAudioBtn.click() },
         { title: "Refine Text", icon: "fa-wand-magic-sparkles", tag: "AI", action: () => processBtn.click() },
         { title: "Visualize", icon: "fa-diagram-project", tag: "Tool", action: () => visualizeBtn.click() },
         { title: "Study Cards", icon: "fa-graduation-cap", tag: "Study", action: () => studyBtn.click() },
+        
+        // NEW: THEMES
+        { title: "Theme: Default Blue", icon: "fa-droplet", tag: "Theme", action: () => setTheme('#818CF8', '#6366F1') },
+        { title: "Theme: Hacker Green", icon: "fa-terminal", tag: "Theme", action: () => setTheme('#34d399', '#10b981') },
+        { title: "Theme: Cyberpunk Pink", icon: "fa-bolt", tag: "Theme", action: () => setTheme('#ec4899', '#db2777') },
+        { title: "Theme: Royal Gold", icon: "fa-crown", tag: "Theme", action: () => setTheme('#fbbf24', '#d97706') },
+        { title: "Theme: Crimson Red", icon: "fa-fire", tag: "Theme", action: () => setTheme('#f87171', '#dc2626') },
+
+        // Data
         { title: "Clear History", icon: "fa-trash", tag: "Data", action: () => { localStorage.removeItem('notesHistory'); location.reload(); } }
     ];
 
-    // Render Logic
     if(cmdInput) {
         cmdInput.addEventListener('input', (e) => renderCommands(e.target.value));
-        
         cmdInput.addEventListener('keydown', (e) => {
             if(e.key === 'Enter') {
                 const selected = document.querySelector('.cmd-item');
@@ -108,7 +119,6 @@ document.addEventListener('DOMContentLoaded', () => {
         cmdResults.innerHTML = '';
         const q = query.toLowerCase();
         
-        // Get History Items
         let history = (JSON.parse(localStorage.getItem('notesHistory')) || []).map(h => ({
             title: h.title,
             icon: "fa-clock-rotate-left", 
@@ -116,7 +126,6 @@ document.addEventListener('DOMContentLoaded', () => {
             action: () => { 
                 userInput.value = h.o; 
                 aiOutput.innerHTML = marked.parse(h.r);
-                // Re-render Math and Code when loading history
                 if(window.renderMathInElement) renderMathInElement(aiOutput, { delimiters: [{left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false}] });
                 aiOutput.classList.remove('empty-state');
                 enableLiveCode();
@@ -136,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const el = document.createElement('div');
             el.className = `cmd-item ${index === 0 ? 'selected' : ''}`;
             el.innerHTML = `
-                <div class="cmd-icon"><i class="fa-solid ${item.icon}"></i></div>
+                <div class="cmd-icon"><i class="fa-solid ${item.icon}" style="color: ${item.tag === 'Theme' ? 'var(--primary)' : ''}"></i></div>
                 <div class="cmd-text">${item.title}</div>
                 <div class="cmd-tag">${item.tag}</div>
             `;
@@ -148,12 +157,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-
     // ==========================================
-    // 2. CORE APP LOGIC
+    // 3. CORE LOGIC (Mic, Audio, Code, etc.)
     // ==========================================
-
-    // SPEECH RECOGNITION
+    
+    // SPEECH
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition;
     if(SpeechRecognition && micBtn) {
@@ -181,7 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast("New Note Started");
     });
 
-    // AUDIO PLAYBACK
+    // AUDIO
     let speech = new SpeechSynthesisUtterance();
     let isSpeaking = false;
     let speeds = [1, 1.5, 2];
@@ -205,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     speech.onend = () => { isSpeaking = false; playAudioBtn.innerHTML = '<i class="fa-solid fa-play"></i>'; };
 
-    // FOCUS MODE
+    // FOCUS
     focusBtn.addEventListener('click', () => {
         sidebar.classList.add('hidden'); topHeader.classList.add('hidden'); outputPanel.classList.add('hidden'); workspace.classList.add('zen'); exitFocusBtn.classList.add('show'); showToast("Focus Mode Active");
     });
@@ -223,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
         userInput.value = txt; userInput.focus();
     };
 
-    // REFINE TEXT
+    // REFINE
     processBtn.addEventListener('click', async () => {
         const text = userInput.value.trim();
         if(!text) { showToast("Enter notes first"); return; }
@@ -231,12 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
         await new Promise(r => setTimeout(r, 600)); 
         const refined = smartFormat(text);
         aiOutput.innerHTML = marked.parse(refined);
-        
-        // RENDER MATH (KaTeX)
-        if(window.renderMathInElement) {
-             renderMathInElement(aiOutput, { delimiters: [{left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false}] });
-        }
-        
+        if(window.renderMathInElement) renderMathInElement(aiOutput, { delimiters: [{left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false}] });
         aiOutput.classList.remove('empty-state');
         enableLiveCode();
         saveToList('notesHistory', text, refined);
@@ -245,21 +248,18 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast("Refined");
     });
 
-    // LIVE CODE RUNNER
+    // LIVE CODE
     function enableLiveCode() {
         const codes = aiOutput.querySelectorAll('pre code.language-javascript');
         codes.forEach(block => {
             const pre = block.parentElement;
             if(pre.querySelector('.run-btn')) return; 
-            
             const btn = document.createElement('button');
             btn.className = 'run-btn'; btn.innerHTML = '<i class="fa-solid fa-play"></i> Run';
             pre.style.position = 'relative'; pre.appendChild(btn);
-            
             const outputDiv = document.createElement('div');
             outputDiv.className = 'code-output'; outputDiv.innerText = "> Output...";
             pre.after(outputDiv);
-            
             btn.addEventListener('click', () => {
                 const code = block.innerText;
                 outputDiv.classList.add('show'); outputDiv.innerText = "";
@@ -288,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) { aiOutput.innerHTML = `<p style="color:#ef4444; padding:20px;">Syntax Error</p>`; }
     });
 
-    // STUDY MODE
+    // STUDY
     let cards = []; let cardIndex = 0;
     studyBtn.addEventListener('click', () => {
         const text = userInput.value.trim();
@@ -316,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let l = JSON.parse(localStorage.getItem(k)) || []; c.innerHTML = '';
         l.forEach(i => {
             let el = document.createElement('div'); el.className='list-item'; el.innerText=i.title;
-            el.onclick = () => { userInput.value=i.o; aiOutput.innerHTML=marked.parse(i.r); aiOutput.classList.remove('empty-state'); enableLiveCode(); };
+            el.onclick = () => { userInput.value=i.o; aiOutput.innerHTML=marked.parse(i.r); if(window.renderMathInElement) renderMathInElement(aiOutput, { delimiters: [{left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false}] }); aiOutput.classList.remove('empty-state'); enableLiveCode(); };
             c.appendChild(el);
         });
     }
