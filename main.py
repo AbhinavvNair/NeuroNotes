@@ -1,22 +1,78 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+from contextlib import asynccontextmanager
 import torch
 import sentencepiece as spm
-from model import EduLLM
 import os
 
+# Import your custom model structure
+# Ensure model.py is in the same folder as main.py
+from model import EduLLM 
+
 # --- CONFIGURATION ---
-vocab_size = 0 
-n_embd = 384
-n_head = 6
-n_layer = 6
-device = 'cpu' # Force CPU for laptop use
+N_EMBD = 384
+N_HEAD = 6
+N_LAYER = 6
+MODEL_PATH = "data/edullm_model.pt"
+TOKENIZER_PATH = "data/tokenizer.model"
 
-app = FastAPI()
+# Detect Mac M-Series chips (MPS) for speed, otherwise CPU
+DEVICE = 'mps' if torch.backends.mps.is_available() else 'cpu'
+print(f"🖥️  Running on device: {DEVICE}")
 
-# 1. Enable CORS
+# Global variables to hold the model and tokenizer
+model_context = {}
+
+# --- LIFESPAN MANAGER (Loads model on startup) ---
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("🔌 Loading NeuroNotes Brain...")
+    try:
+        # 1. Load Tokenizer
+        if not os.path.exists(TOKENIZER_PATH):
+            raise FileNotFoundError(f"Tokenizer not found at {TOKENIZER_PATH}")
+        
+        sp = spm.SentencePieceProcessor()
+        sp.load(TOKENIZER_PATH)
+        vocab_size = sp.get_piece_size()
+        
+        # 2. Load Model
+        if not os.path.exists(MODEL_PATH):
+            raise FileNotFoundError(f"Model not found at {MODEL_PATH}")
+
+        model = EduLLM(vocab_size, N_EMBD, N_HEAD, N_LAYER)
+        
+        # Load weights
+        checkpoint = torch.load(MODEL_PATH, map_location=torch.device(DEVICE))
+        model.load_state_dict(checkpoint)
+        model.to(DEVICE)
+        model.eval() # Set to evaluation mode
+        
+        # Store in global context
+        model_context['model'] = model
+        model_context['sp'] = sp
+        
+        print("✅ Brain Loaded Successfully!")
+        print(f"🚀 NeuroNotes is Ready on {DEVICE}!")
+        
+    except Exception as e:
+        print(f"❌ CRITICAL ERROR LOADING MODEL: {e}")
+        # We don't raise here so the server can still serve the frontend, 
+        # but the AI endpoint will fail gracefully.
+        
+    yield # The application runs here
+    
+    # Clean up (optional)
+    model_context.clear()
+    print("💤 Brain shutting down...")
+
+# --- APP INITIALIZATION ---
+app = FastAPI(lifespan=lifespan)
+
+# Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -24,55 +80,51 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- LOAD MODEL ---
-print("🔌 Loading Brain...")
-try:
-    sp = spm.SentencePieceProcessor()
-    sp.load("data/tokenizer.model")
-    vocab_size = sp.get_piece_size()
-    
-    model = EduLLM(vocab_size, n_embd, n_head, n_layer)
-    checkpoint = torch.load("data/edullm_model.pt", map_location=torch.device('cpu'))
-    model.load_state_dict(checkpoint)
-    model.to(device)
-    model.eval()
-    print("✅ Brain Loaded Successfully!")
-    print("🚀 EduLLM is Ready to Serve!")
-except Exception as e:
-    print(f"❌ CRITICAL ERROR: {e}")
-    print("Please ensure the model files are in the 'data' directory.")
+# --- SERVE FRONTEND (The Clean Way) ---
+# This mounts the 'frontend' folder to serve css, js, and images automatically
+app.mount("/static", StaticFiles(directory="../frontend"), name="static")
 
-# --- API REQUEST MODEL ---
+# Serve the main HTML page
+@app.get("/")
+async def read_index():
+    return FileResponse('../frontend/index.html')
+
+# --- DATA MODELS ---
 class GenerateRequest(BaseModel):
     prompt: str
     max_tokens: int = 100
     temperature: float = 0.7
 
-# --- API ENDPOINT ---
+# --- AI ENDPOINT ---
 @app.post("/generate")
 async def generate_text(request: GenerateRequest):
+    model = model_context.get('model')
+    sp = model_context.get('sp')
+
+    if not model or not sp:
+        raise HTTPException(status_code=503, detail="AI Model is not loaded. Check server logs.")
+
     try:
-        idx = torch.tensor([sp.encode_as_ids(request.prompt)], dtype=torch.long).to(device)
+        # Encode input
+        idx = torch.tensor([sp.encode_as_ids(request.prompt)], dtype=torch.long).to(DEVICE)
+        
+        # Generate
         with torch.no_grad():
-            output = model.generate(idx, max_new_tokens=request.max_tokens, temperature=request.temperature)
+            output = model.generate(
+                idx, 
+                max_new_tokens=request.max_tokens, 
+                temperature=request.temperature
+            )
+            
+        # Decode output
         generated_text = sp.decode(output[0].tolist())
         return {"response": generated_text}
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"Generation Error: {e}")
+        raise HTTPException(status_code=500, detail="Error generating text")
 
-# --- SERVE FRONTEND FILES (The Fix) ---
-
-# 1. Serve the Homepage
-@app.get("/")
-async def read_index():
-    return FileResponse('index.html')
-
-# 2. Serve the CSS (Fixes the ugly look)
-@app.get("/styles.css")
-async def read_css():
-    return FileResponse('styles.css')
-
-# 3. Serve the JS (Fixes the buttons)
-@app.get("/script.js")
-async def read_js():
-    return FileResponse('script.js')
+if __name__ == "__main__":
+    import uvicorn
+    # Reload=True is great for development
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
