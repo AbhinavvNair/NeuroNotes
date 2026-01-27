@@ -1,67 +1,34 @@
+import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
-import torch
-import sentencepiece as spm
-import os
+from groq import Groq
+from dotenv import load_dotenv
 
-# Ensure model.py is in the same folder as main.py
-from model import EduLLM 
+# Load environment variables from .env file
+load_dotenv()
 
 # --- CONFIGURATION ---
-N_EMBD = 384
-N_HEAD = 6
-N_LAYER = 6
-MODEL_PATH = "data/edullm_model.pt"
-TOKENIZER_PATH = "data/tokenizer.model"
-
-# Detect Device
-if torch.backends.mps.is_available():
-    DEVICE = 'mps'
-elif torch.cuda.is_available():
-    DEVICE = 'cuda'
-else:
-    DEVICE = 'cpu'
-
-print(f"🖥️  Running on device: {DEVICE}")
+# Fetches the key from your .env file
+API_KEY = os.getenv("GROQ_API_KEY")
 
 model_context = {}
 
 # --- LIFESPAN MANAGER ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("🔌 Loading EduSummarizer Brain...")
+    print("🔌 Connecting to Groq Cloud...")
+    if not API_KEY:
+        print("❌ ERROR: GROQ_API_KEY not found in .env file!")
     try:
-        # 1. Load Tokenizer
-        sp = spm.SentencePieceProcessor()
-        if not os.path.exists(TOKENIZER_PATH):
-            print(f"⚠️ Warning: Tokenizer not found at {TOKENIZER_PATH}")
-        else:
-            sp.load(TOKENIZER_PATH)
-        
-        vocab_size = sp.get_piece_size() if os.path.exists(TOKENIZER_PATH) else 5000 
-        
-        # 2. Load Model
-        model = EduLLM(vocab_size, N_EMBD, N_HEAD, N_LAYER)
-        if os.path.exists(MODEL_PATH):
-            # map_location handles CPU/GPU/MPS cross-loading
-            checkpoint = torch.load(MODEL_PATH, map_location=torch.device(DEVICE))
-            model.load_state_dict(checkpoint)
-            print("✅ Weights loaded.")
-        
-        model.to(DEVICE)
-        model.eval()
-        
-        model_context['model'] = model
-        model_context['sp'] = sp
-        print("🚀 EduSummarizer is Ready!")
-        
+        client = Groq(api_key=API_KEY)
+        model_context['client'] = client
+        print("🚀 EduSummarizer (Groq-powered) is Ready!")
     except Exception as e:
         print(f"❌ CRITICAL ERROR: {e}")
-        
     yield
     model_context.clear()
 
@@ -75,12 +42,10 @@ app.add_middleware(
 )
 
 # --- SERVE FRONTEND ---
-# Since your index.html/script.js are in the root, we serve them directly
 @app.get("/")
 async def read_index():
     return FileResponse('index.html')
 
-# This serves styles.css and script.js from your root directory
 app.mount("/static", StaticFiles(directory="./"), name="static")
 
 # --- DATA MODELS ---
@@ -92,40 +57,34 @@ class GenerateRequest(BaseModel):
 # --- AI ENDPOINT ---
 @app.post("/generate")
 async def generate_text(request: GenerateRequest):
-    model = model_context.get('model')
-    sp = model_context.get('sp')
+    client = model_context.get('client')
 
-    if not model:
-        raise HTTPException(status_code=503, detail="Model not loaded.")
+    if not client:
+        raise HTTPException(status_code=503, detail="Groq client not initialized.")
 
     try:
-        # 1. Format the prompt for a decoder-only model
-        full_prompt = f"Text: {request.prompt}\nSummary:"
-        
-        # 2. Tokenize
-        idx = torch.tensor([sp.encode_as_ids(full_prompt)], dtype=torch.long).to(DEVICE)
-        
-        # 3. Generate
-        with torch.no_grad():
-            output = model.generate(
-                idx, 
-                max_new_tokens=request.max_tokens, 
-                temperature=request.temperature
-            )
-            
-        # 4. Decode
-        full_text = sp.decode(output[0].tolist())
-        
-        # 5. Extract only the summary (the part after our prompt)
-        if "Summary:" in full_text:
-            summary = full_text.split("Summary:")[-1].strip()
-        else:
-            summary = full_text[len(full_prompt):].strip()
+        # Groq API Call
+        completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "system", 
+                    "content": "You are a helpful assistant that summarizes educational content."
+                },
+                {
+                    "role": "user", 
+                    "content": f"Summarize the following text:\n\n{request.prompt}"
+                }
+            ],
+            temperature=request.temperature,
+            max_tokens=request.max_tokens,
+        )
 
+        summary = completion.choices[0].message.content.strip()
         return {"response": summary}
 
     except Exception as e:
-        print(f"Generation Error: {e}")
+        print(f"Groq Generation Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
