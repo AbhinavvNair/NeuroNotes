@@ -1,6 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize Mermaid (Charts)
-    mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+    if (typeof mermaid !== 'undefined') {
+        mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+    }
 
     // --- DOM ELEMENTS ---
     const userInput = document.getElementById('userInput');
@@ -8,6 +10,56 @@ document.addEventListener('DOMContentLoaded', () => {
     const processBtn = document.getElementById('processBtn');
     const historyList = document.getElementById('historyList');
     const toast = document.getElementById('toast');
+    const micBtn = document.getElementById('micBtn');
+
+    // --- 0. MIC / VOICE DICTATION ---
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (SpeechRecognition && micBtn) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false; // Stop after one sentence (change to true for long dictation)
+        recognition.lang = 'en-US'; 
+        recognition.interimResults = false;
+
+        // Toggle Recording
+        micBtn.addEventListener('click', () => {
+            if (micBtn.classList.contains('recording')) {
+                recognition.stop();
+            } else {
+                try {
+                    recognition.start();
+                    micBtn.classList.add('recording');
+                    showToast("Listening...");
+                } catch (e) {
+                    console.error(e);
+                    showToast("Microphone error");
+                }
+            }
+        });
+
+        // Handle Result
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            const currentText = userInput.value;
+            // Append with a space if there is already text
+            userInput.value = currentText + (currentText.length > 0 ? ' ' : '') + transcript;
+            userInput.dispatchEvent(new Event('input')); // Trigger word count update if any
+        };
+
+        // Cleanup
+        recognition.onend = () => {
+            micBtn.classList.remove('recording');
+        };
+        
+        recognition.onerror = (event) => {
+            console.error("Speech Error:", event.error);
+            micBtn.classList.remove('recording');
+            showToast("Error: " + event.error);
+        };
+    } else {
+        if(micBtn) micBtn.style.display = 'none';
+        console.log("Web Speech API not supported.");
+    }
 
     // --- 1. CORE AI LOGIC ---
     processBtn.addEventListener('click', async () => {
@@ -65,10 +117,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 2. LIVE CODE RUNNER ---
     function enableLiveCode() {
-        // Look for all code blocks
         const codes = aiOutput.querySelectorAll('pre code');
         codes.forEach(block => {
-            // Only add run button if it's JS and doesn't already have one
+            // Only add run button if it's JS
             if(!block.className.includes('language-javascript')) return;
             const pre = block.parentElement;
             if(pre.querySelector('.run-btn')) return; 
@@ -123,6 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     function showToast(msg) { 
+        if(!toast) return;
         toast.innerText = msg; 
         toast.classList.add('show'); 
         setTimeout(() => toast.classList.remove('show'), 3000); 
@@ -131,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function saveToList(k, o, r) { 
         let l = JSON.parse(localStorage.getItem(k)) || []; 
         l.unshift({id: Date.now(), title: o.substring(0, 20) + "...", o, r}); 
-        localStorage.setItem(k, JSON.stringify(l.slice(0, 10))); // Keep last 10
+        localStorage.setItem(k, JSON.stringify(l.slice(0, 10))); 
     }
 
     function loadList(k, c) {
