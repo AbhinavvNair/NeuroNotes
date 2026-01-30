@@ -15,7 +15,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const exitFocusBtn = document.getElementById('exitFocusBtn'); 
     const toast = document.getElementById('toast');
     
-    // GOD MODE ELEMENTS
+    // Audio / Podcast Elements
+    const playAudioBtn = document.getElementById('playAudioBtn');
+    const stopAudioBtn = document.getElementById('stopAudioBtn');
+    const speedBtn = document.getElementById('speedBtn');
+
+    // God Mode Elements
     const cmdPalette = document.getElementById('cmdPalette');
     const cmdInput = document.getElementById('cmdInput');
     const cmdResults = document.getElementById('cmdResults');
@@ -41,7 +46,86 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 1. GOD MODE (CTRL + K)
+    // 1. PODCAST MODE (Text-to-Speech)
+    // ==========================================
+    let speech = new SpeechSynthesisUtterance();
+    let isSpeaking = false;
+    let speeds = [1, 1.5, 2];
+    let speedIndex = 0;
+
+    // Load voices (fix for some browsers)
+    let voices = [];
+    window.speechSynthesis.onvoiceschanged = () => {
+        voices = window.speechSynthesis.getVoices();
+    };
+
+    if(playAudioBtn) {
+        playAudioBtn.addEventListener('click', () => {
+            if(isSpeaking) {
+                // If speaking, pause it
+                if(window.speechSynthesis.paused) {
+                    window.speechSynthesis.resume();
+                    playAudioBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                } else {
+                    window.speechSynthesis.pause();
+                    playAudioBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+                }
+            } else {
+                // Start speaking
+                let textToRead = window.getSelection().toString() || aiOutput.innerText || userInput.value;
+                
+                if(!textToRead.trim() || textToRead.includes("Result appears here")) { 
+                    showToast("Nothing to read"); 
+                    return; 
+                }
+
+                // Setup Speech
+                window.speechSynthesis.cancel(); // Clear old queue
+                speech.text = textToRead;
+                speech.rate = speeds[speedIndex];
+                speech.lang = 'en-US';
+                
+                // Pick a nice voice if available
+                const preferredVoice = voices.find(v => v.name.includes("Google US English") || v.name.includes("Samantha"));
+                if(preferredVoice) speech.voice = preferredVoice;
+
+                window.speechSynthesis.speak(speech);
+                isSpeaking = true;
+                playAudioBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+            }
+        });
+    }
+
+    if(stopAudioBtn) {
+        stopAudioBtn.addEventListener('click', () => { 
+            window.speechSynthesis.cancel(); 
+            isSpeaking = false; 
+            playAudioBtn.innerHTML = '<i class="fa-solid fa-play"></i>'; 
+        });
+    }
+
+    if(speedBtn) {
+        speedBtn.addEventListener('click', () => {
+            speedIndex = (speedIndex + 1) % speeds.length; 
+            speedBtn.innerText = speeds[speedIndex] + 'x';
+            
+            // Apply speed immediately if speaking
+            if(window.speechSynthesis.speaking) { 
+                window.speechSynthesis.cancel(); 
+                speech.rate = speeds[speedIndex]; 
+                window.speechSynthesis.speak(speech); 
+            }
+        });
+    }
+
+    // Reset when finished
+    speech.onend = () => { 
+        isSpeaking = false; 
+        playAudioBtn.innerHTML = '<i class="fa-solid fa-play"></i>'; 
+    };
+
+    // ==========================================
+    // 2. GOD MODE (CTRL + K)
     // ==========================================
     
     function toggleGodMode() {
@@ -60,20 +144,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Keyboard Shortcuts
     document.addEventListener('keydown', (e) => {
-        // Trigger God Mode
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
             e.preventDefault();
             toggleGodMode();
         }
-        // Close on Escape
         if (e.key === 'Escape' && cmdPalette && !cmdPalette.classList.contains('hidden')) {
             toggleGodMode();
         }
     });
 
-    // Close on overlay click
     if(cmdPalette) {
         cmdPalette.addEventListener('click', (e) => {
             if (e.target === cmdPalette) toggleGodMode();
@@ -88,40 +168,26 @@ document.addEventListener('DOMContentLoaded', () => {
         if(notify) showToast("Theme Updated");
     }
 
-    // --- GOD MODE ACTIONS (The Mega List) ---
+    // --- GOD MODE ACTIONS ---
     const actions = [
-        // Core Tools
         { title: "New Note", icon: "fa-plus", tag: "Action", action: () => newNoteBtn.click() },
         { title: "Refine Text (AI)", icon: "fa-wand-magic-sparkles", tag: "AI", action: () => processBtn.click() },
+        { title: "Podcast Play", icon: "fa-play", tag: "Audio", action: () => playAudioBtn.click() },
         { title: "Focus Mode", icon: "fa-expand", tag: "View", action: () => focusBtn.click() },
         { title: "Visualize Diagram", icon: "fa-diagram-project", tag: "Tool", action: () => visualizeBtn.click() },
         { title: "Study Flashcards", icon: "fa-graduation-cap", tag: "Study", action: () => studyBtn.click() },
         
-        // --- THEME PACK (God Mode Exclusive) ---
-        // Blues & Purples
+        // Themes
         { title: "Theme: Default Blue", icon: "fa-droplet", tag: "Theme", action: () => setTheme('#818CF8', '#6366F1') },
-        { title: "Theme: Electric Violet", icon: "fa-bolt", tag: "Theme", action: () => setTheme('#a78bfa', '#8b5cf6') },
-        { title: "Theme: Deep Ocean", icon: "fa-water", tag: "Theme", action: () => setTheme('#38bdf8', '#0ea5e9') },
-        
-        // Greens & Teals
         { title: "Theme: Hacker Green", icon: "fa-terminal", tag: "Theme", action: () => setTheme('#34d399', '#10b981') },
-        { title: "Theme: Mint Fresh", icon: "fa-leaf", tag: "Theme", action: () => setTheme('#2dd4bf', '#14b8a6') },
-        { title: "Theme: Toxic Lime", icon: "fa-biohazard", tag: "Theme", action: () => setTheme('#a3e635', '#84cc16') },
-        
-        // Warm Colors
-        { title: "Theme: Cyberpunk Pink", icon: "fa-backward", tag: "Theme", action: () => setTheme('#f472b6', '#ec4899') },
+        { title: "Theme: Electric Violet", icon: "fa-bolt", tag: "Theme", action: () => setTheme('#a78bfa', '#8b5cf6') },
         { title: "Theme: Crimson Red", icon: "fa-fire", tag: "Theme", action: () => setTheme('#f87171', '#ef4444') },
         { title: "Theme: Sunset Orange", icon: "fa-sun", tag: "Theme", action: () => setTheme('#fb923c', '#f97316') },
-        { title: "Theme: Royal Gold", icon: "fa-crown", tag: "Theme", action: () => setTheme('#fbbf24', '#f59e0b') },
-        
-        // Monochrome
         { title: "Theme: Zen Gray", icon: "fa-mountain", tag: "Theme", action: () => setTheme('#94a3b8', '#64748b') },
 
-        // Data
         { title: "Clear History", icon: "fa-trash", tag: "Data", action: () => { if(confirm("Clear history?")) { localStorage.removeItem('notesHistory'); location.reload(); } } }
     ];
 
-    // Search Logic
     if(cmdInput) {
         cmdInput.addEventListener('input', (e) => renderCommands(e.target.value));
         cmdInput.addEventListener('keydown', (e) => {
@@ -137,7 +203,6 @@ document.addEventListener('DOMContentLoaded', () => {
         cmdResults.innerHTML = '';
         const q = query.toLowerCase();
         
-        // Include History in God Mode
         let history = (JSON.parse(localStorage.getItem('notesHistory')) || []).map(h => ({
             title: h.title,
             icon: "fa-clock-rotate-left", 
@@ -155,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
         );
 
         if(allItems.length === 0) {
-            cmdResults.innerHTML = '<div style="padding:15px; color:#64748b; text-align:center;">No God Mode actions found</div>';
+            cmdResults.innerHTML = '<div style="padding:15px; color:#64748b; text-align:center;">No actions found</div>';
             return;
         }
 
@@ -176,7 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 2. MIC / VOICE DICTATION
+    // 3. MIC / VOICE DICTATION
     // ==========================================
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition;
@@ -211,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 3. CORE AI LOGIC (Groq Backend)
+    // 4. CORE AI LOGIC (Groq Backend)
     // ==========================================
     processBtn.addEventListener('click', async () => {
         const text = userInput.value.trim();
