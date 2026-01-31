@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize Charts
+    // Initialize Charts (Mermaid)
     if (typeof mermaid !== 'undefined') {
-        mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+        mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
     }
 
     // --- DOM ELEMENTS ---
@@ -9,14 +9,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const aiOutput = document.getElementById('aiOutput');
     const newNoteBtn = document.getElementById('newNoteBtn');
     const processBtn = document.getElementById('processBtn');
+    
+    // VISUALIZE BUTTON (The Star of the Show)
     const visualizeBtn = document.getElementById('visualizeBtn');
+    
     const focusBtn = document.getElementById('focusBtn'); 
     const exitFocusBtn = document.getElementById('exitFocusBtn'); 
     const toast = document.getElementById('toast');
+    const pdfBtn = document.getElementById('pdfBtn'); // PDF Fixed
     
-    // PDF BUTTON (The Fix)
-    const pdfBtn = document.getElementById('pdfBtn');
-
     // Audio Elements
     const playAudioBtn = document.getElementById('playAudioBtn');
     const stopAudioBtn = document.getElementById('stopAudioBtn');
@@ -48,64 +49,91 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 1. PDF EXPORT (FOOLPROOF VERSION)
+    // 1. VISUALIZATION ENGINE (NEW)
+    // ==========================================
+    if(visualizeBtn) {
+        visualizeBtn.addEventListener('click', async () => {
+            const text = userInput.value.trim() || aiOutput.innerText;
+            if(!text || text.length < 5) { showToast("Enter more text to visualize"); return; }
+
+            // UI Feedback
+            visualizeBtn.disabled = true;
+            const originalIcon = visualizeBtn.innerHTML;
+            visualizeBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            showToast("Designing Diagram...");
+
+            // Special Prompt for Diagrams
+            const prompt = `Based on the following text, generate a MERMAID.JS graph code (graph TD or mindmap). 
+            STRICT RULE: Output ONLY the code block inside \`\`\`mermaid ... \`\`\`. Do not say "Here is the code".
+            Text to visualize:
+            ${text.substring(0, 1500)}`; // Limit char count to avoid lag
+
+            try {
+                // Use existing backend
+                const response = await fetch("http://127.0.0.1:8000/generate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt: prompt, temperature: 0.2 }), // Low temp for precise code
+                });
+
+                if (!response.ok) throw new Error("Backend Error");
+                const data = await response.json();
+                
+                // Extract Code Block using Regex
+                const match = data.response.match(/```mermaid([\s\S]*?)```/);
+                const mermaidCode = match ? match[1].trim() : data.response;
+
+                // Render
+                aiOutput.innerHTML = `<div class="mermaid">${mermaidCode}</div>`;
+                aiOutput.classList.remove('empty-state');
+                
+                // Trigger Mermaid Render
+                await mermaid.run({ nodes: [aiOutput.querySelector('.mermaid')] });
+                showToast("Diagram Created");
+
+            } catch (error) {
+                console.error(error);
+                showToast("Visualization Failed");
+                aiOutput.innerText = "Error generating diagram. Try simpler text.";
+            } finally {
+                visualizeBtn.disabled = false;
+                visualizeBtn.innerHTML = originalIcon;
+            }
+        });
+    }
+
+    // ==========================================
+    // 2. PDF EXPORT (FOOLPROOF)
     // ==========================================
     if (pdfBtn) {
-        console.log("✅ PDF Button Found"); // Debug Log
-
         pdfBtn.addEventListener('click', () => {
-            console.log("🖱️ PDF Button Clicked"); // Debug Log
-
-            // 1. Check Library
             if (typeof html2pdf === 'undefined') {
-                console.error("❌ html2pdf library is missing!");
-                alert("Error: PDF library did not load. Please check your internet connection.");
-                return;
+                alert("Error: PDF Library missing."); return;
             }
-
-            // 2. Check Content
             if (aiOutput.classList.contains('empty-state') || !aiOutput.innerText.trim()) {
-                showToast("Nothing to export");
-                return;
+                showToast("Nothing to export"); return;
             }
 
-            // 3. UI Feedback
             showToast("Generating PDF...");
             const originalIcon = pdfBtn.innerHTML;
             pdfBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; 
 
-            // 4. Settings
             const opt = {
-                margin:       0.5,
-                filename:     'NeuroNotes_Export.pdf',
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true }, 
-                jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+                margin: 0.5, filename: 'NeuroNotes_Export.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true }, 
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
             };
 
-            // 5. Generate
             html2pdf().set(opt).from(aiOutput).save()
-                .then(() => {
-                    console.log("✅ PDF Download Started");
-                    showToast("PDF Downloaded");
-                })
-                .catch(err => {
-                    console.error("❌ PDF Error:", err);
-                    alert("PDF Failed: " + err.message);
-                })
-                .finally(() => {
-                    pdfBtn.innerHTML = originalIcon;
-                });
+                .then(() => showToast("PDF Downloaded"))
+                .catch(err => { console.error(err); alert("PDF Error: " + err.message); })
+                .finally(() => pdfBtn.innerHTML = originalIcon);
         });
-    } else {
-        console.error("❌ PDF Button NOT found. Did you add id='pdfBtn' to HTML?");
     }
 
-    // Keep global for God Mode
-    window.triggerPDF = () => { if(pdfBtn) pdfBtn.click(); };
-
     // ==========================================
-    // 2. GOD MODE (CTRL + K)
+    // 3. GOD MODE (CTRL + K)
     // ==========================================
     function toggleGodMode() {
         if(!cmdPalette) return;
@@ -150,19 +178,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const actions = [
         { title: "New Note", icon: "fa-plus", tag: "Action", action: () => newNoteBtn.click() },
         { title: "Refine Text (AI)", icon: "fa-wand-magic-sparkles", tag: "AI", action: () => processBtn.click() },
-        { title: "Export PDF", icon: "fa-file-pdf", tag: "File", action: () => window.triggerPDF() }, 
+        { title: "Export PDF", icon: "fa-file-pdf", tag: "File", action: () => pdfBtn ? pdfBtn.click() : null }, 
         { title: "Podcast Play", icon: "fa-play", tag: "Audio", action: () => playAudioBtn.click() },
         { title: "Focus Mode", icon: "fa-expand", tag: "View", action: () => focusBtn.click() },
         { title: "Visualize Diagram", icon: "fa-diagram-project", tag: "Tool", action: () => visualizeBtn.click() },
         
-        // Themes
         { title: "Theme: Default Blue", icon: "fa-droplet", tag: "Theme", action: () => setTheme('#818CF8', '#6366F1') },
         { title: "Theme: Hacker Green", icon: "fa-terminal", tag: "Theme", action: () => setTheme('#34d399', '#10b981') },
         { title: "Theme: Electric Violet", icon: "fa-bolt", tag: "Theme", action: () => setTheme('#a78bfa', '#8b5cf6') },
         { title: "Theme: Crimson Red", icon: "fa-fire", tag: "Theme", action: () => setTheme('#f87171', '#ef4444') },
-        { title: "Theme: Sunset Orange", icon: "fa-sun", tag: "Theme", action: () => setTheme('#fb923c', '#f97316') },
-        { title: "Theme: Zen Gray", icon: "fa-mountain", tag: "Theme", action: () => setTheme('#94a3b8', '#64748b') },
-
+        
         { title: "Clear History", icon: "fa-trash", tag: "Data", action: () => { if(confirm("Clear history?")) { localStorage.removeItem('notesHistory'); location.reload(); } } }
     ];
 
@@ -219,11 +244,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 3. MIC / PODCAST / AI
+    // 4. MIC / PODCAST / AI
     // ==========================================
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     
-    // MIC Logic
+    // MIC
     if (SpeechRecognition && micBtn) {
         let recognition = new SpeechRecognition();
         recognition.continuous = false;
@@ -250,7 +275,7 @@ document.addEventListener('DOMContentLoaded', () => {
         recognition.onend = () => micBtn.classList.remove('recording');
     }
 
-    // PODCAST Logic
+    // PODCAST
     let speech = new SpeechSynthesisUtterance();
     let isSpeaking = false;
     let speeds = [1, 1.5, 2];
