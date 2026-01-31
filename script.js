@@ -10,12 +10,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const newNoteBtn = document.getElementById('newNoteBtn');
     const processBtn = document.getElementById('processBtn');
     const visualizeBtn = document.getElementById('visualizeBtn');
-    const studyBtn = document.getElementById('studyBtn'); 
     const focusBtn = document.getElementById('focusBtn'); 
     const exitFocusBtn = document.getElementById('exitFocusBtn'); 
     const toast = document.getElementById('toast');
     
-    // Audio / Podcast Elements
+    // Audio Elements
     const playAudioBtn = document.getElementById('playAudioBtn');
     const stopAudioBtn = document.getElementById('stopAudioBtn');
     const speedBtn = document.getElementById('speedBtn');
@@ -24,21 +23,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const cmdPalette = document.getElementById('cmdPalette');
     const cmdInput = document.getElementById('cmdInput');
     const cmdResults = document.getElementById('cmdResults');
-
     const micBtn = document.getElementById('micBtn');
+    
+    // Lists & Layout
+    const historyList = document.getElementById('historyList');
+    const savedList = document.getElementById('savedList');
     const sidebar = document.getElementById('sidebar');
     const topHeader = document.getElementById('topHeader');
     const outputPanel = document.getElementById('outputPanel');
     const workspace = document.getElementById('workspace');
-    
-    // Lists
-    const historyList = document.getElementById('historyList');
-    const savedList = document.getElementById('savedList');
 
-    // Load Data & Saved Theme
+    // Load Data
     loadList('notesHistory', historyList);
     loadList('savedNotes', savedList);
     
+    // Load Theme
     const savedTheme = localStorage.getItem('userTheme');
     if(savedTheme) {
         const theme = JSON.parse(savedTheme);
@@ -46,88 +45,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 1. PODCAST MODE (Text-to-Speech)
+    // 1. GOD MODE (CTRL + K)
     // ==========================================
-    let speech = new SpeechSynthesisUtterance();
-    let isSpeaking = false;
-    let speeds = [1, 1.5, 2];
-    let speedIndex = 0;
-
-    // Load voices (fix for some browsers)
-    let voices = [];
-    window.speechSynthesis.onvoiceschanged = () => {
-        voices = window.speechSynthesis.getVoices();
-    };
-
-    if(playAudioBtn) {
-        playAudioBtn.addEventListener('click', () => {
-            if(isSpeaking) {
-                // If speaking, pause it
-                if(window.speechSynthesis.paused) {
-                    window.speechSynthesis.resume();
-                    playAudioBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
-                } else {
-                    window.speechSynthesis.pause();
-                    playAudioBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
-                }
-            } else {
-                // Start speaking
-                let textToRead = window.getSelection().toString() || aiOutput.innerText || userInput.value;
-                
-                if(!textToRead.trim() || textToRead.includes("Result appears here")) { 
-                    showToast("Nothing to read"); 
-                    return; 
-                }
-
-                // Setup Speech
-                window.speechSynthesis.cancel(); // Clear old queue
-                speech.text = textToRead;
-                speech.rate = speeds[speedIndex];
-                speech.lang = 'en-US';
-                
-                // Pick a nice voice if available
-                const preferredVoice = voices.find(v => v.name.includes("Google US English") || v.name.includes("Samantha"));
-                if(preferredVoice) speech.voice = preferredVoice;
-
-                window.speechSynthesis.speak(speech);
-                isSpeaking = true;
-                playAudioBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
-            }
-        });
-    }
-
-    if(stopAudioBtn) {
-        stopAudioBtn.addEventListener('click', () => { 
-            window.speechSynthesis.cancel(); 
-            isSpeaking = false; 
-            playAudioBtn.innerHTML = '<i class="fa-solid fa-play"></i>'; 
-        });
-    }
-
-    if(speedBtn) {
-        speedBtn.addEventListener('click', () => {
-            speedIndex = (speedIndex + 1) % speeds.length; 
-            speedBtn.innerText = speeds[speedIndex] + 'x';
-            
-            // Apply speed immediately if speaking
-            if(window.speechSynthesis.speaking) { 
-                window.speechSynthesis.cancel(); 
-                speech.rate = speeds[speedIndex]; 
-                window.speechSynthesis.speak(speech); 
-            }
-        });
-    }
-
-    // Reset when finished
-    speech.onend = () => { 
-        isSpeaking = false; 
-        playAudioBtn.innerHTML = '<i class="fa-solid fa-play"></i>'; 
-    };
-
-    // ==========================================
-    // 2. GOD MODE (CTRL + K)
-    // ==========================================
-    
     function toggleGodMode() {
         if(!cmdPalette) return;
         const isHidden = cmdPalette.classList.contains('hidden');
@@ -146,8 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.addEventListener('keydown', (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-            e.preventDefault();
-            toggleGodMode();
+            e.preventDefault(); toggleGodMode();
         }
         if (e.key === 'Escape' && cmdPalette && !cmdPalette.classList.contains('hidden')) {
             toggleGodMode();
@@ -175,7 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
         { title: "Podcast Play", icon: "fa-play", tag: "Audio", action: () => playAudioBtn.click() },
         { title: "Focus Mode", icon: "fa-expand", tag: "View", action: () => focusBtn.click() },
         { title: "Visualize Diagram", icon: "fa-diagram-project", tag: "Tool", action: () => visualizeBtn.click() },
-        { title: "Study Flashcards", icon: "fa-graduation-cap", tag: "Study", action: () => studyBtn.click() },
         
         // Themes
         { title: "Theme: Default Blue", icon: "fa-droplet", tag: "Theme", action: () => setTheme('#818CF8', '#6366F1') },
@@ -241,16 +158,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 3. MIC / VOICE DICTATION
+    // 2. MIC / PODCAST / AI
     // ==========================================
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let recognition;
     
+    // MIC Logic
     if (SpeechRecognition && micBtn) {
-        recognition = new SpeechRecognition();
+        let recognition = new SpeechRecognition();
         recognition.continuous = false;
-        recognition.lang = 'en-US'; 
-        recognition.interimResults = false;
+        recognition.lang = 'en-US';
 
         micBtn.addEventListener('click', () => {
             if (micBtn.classList.contains('recording')) {
@@ -260,9 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     recognition.start();
                     micBtn.classList.add('recording');
                     showToast("Listening...");
-                } catch (e) {
-                    showToast("Mic Error");
-                }
+                } catch (e) { showToast("Mic Error"); }
             }
         });
 
@@ -275,9 +189,54 @@ document.addEventListener('DOMContentLoaded', () => {
         recognition.onend = () => micBtn.classList.remove('recording');
     }
 
-    // ==========================================
-    // 4. CORE AI LOGIC (Groq Backend)
-    // ==========================================
+    // PODCAST Logic
+    let speech = new SpeechSynthesisUtterance();
+    let isSpeaking = false;
+    let speeds = [1, 1.5, 2];
+    let speedIndex = 0;
+
+    if(playAudioBtn) {
+        playAudioBtn.addEventListener('click', () => {
+            if(isSpeaking) {
+                if(window.speechSynthesis.paused) {
+                    window.speechSynthesis.resume();
+                    playAudioBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                } else {
+                    window.speechSynthesis.pause();
+                    playAudioBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+                }
+            } else {
+                let textToRead = window.getSelection().toString() || aiOutput.innerText || userInput.value;
+                if(!textToRead.trim() || textToRead.includes("Result appears here")) { showToast("Nothing to read"); return; }
+                
+                window.speechSynthesis.cancel();
+                speech.text = textToRead;
+                speech.rate = speeds[speedIndex];
+                window.speechSynthesis.speak(speech);
+                isSpeaking = true;
+                playAudioBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+            }
+        });
+    }
+
+    if(stopAudioBtn) {
+        stopAudioBtn.addEventListener('click', () => { 
+            window.speechSynthesis.cancel(); 
+            isSpeaking = false; 
+            playAudioBtn.innerHTML = '<i class="fa-solid fa-play"></i>'; 
+        });
+    }
+
+    if(speedBtn) {
+        speedBtn.addEventListener('click', () => {
+            speedIndex = (speedIndex + 1) % speeds.length; 
+            speedBtn.innerText = speeds[speedIndex] + 'x';
+        });
+    }
+
+    speech.onend = () => { isSpeaking = false; playAudioBtn.innerHTML = '<i class="fa-solid fa-play"></i>'; };
+
+    // AI Logic (Connects to main.py)
     processBtn.addEventListener('click', async () => {
         const text = userInput.value.trim();
         if(!text) { showToast("Enter notes first"); return; }
@@ -289,40 +248,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch("http://127.0.0.1:8000/generate", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    prompt: text,
-                    max_tokens: 1000,
-                    temperature: 0.7
-                }),
+                body: JSON.stringify({ prompt: text }),
             });
 
-            if (!response.ok) throw new Error("Backend Error. Check Terminal.");
-
+            if (!response.ok) throw new Error("Backend Error");
             const data = await response.json();
-            const refined = data.response; 
-
-            aiOutput.innerHTML = marked.parse(refined);
+            aiOutput.innerHTML = marked.parse(data.response);
             
             if(window.renderMathInElement) {
                 renderMathInElement(aiOutput, { delimiters: [{left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false}] });
             }
-            
             aiOutput.classList.remove('empty-state');
             enableLiveCode();
-            
-            saveToList('notesHistory', text, refined);
+            saveToList('notesHistory', text, data.response);
             loadList('notesHistory', historyList);
-            showToast("Refinement Complete");
-
-        } catch (error) {
-            showToast("Error: " + error.message);
-        } finally {
-            processBtn.disabled = false; 
-            processBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Refine';
-        }
+            showToast("Complete");
+        } catch (error) { showToast("Error: " + error.message); } 
+        finally { processBtn.disabled = false; processBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Refine'; }
     });
 
-    // --- Live Code Runner ---
+    // --- UTILS ---
     function enableLiveCode() {
         const codes = aiOutput.querySelectorAll('pre code');
         codes.forEach(block => {
@@ -331,70 +276,46 @@ document.addEventListener('DOMContentLoaded', () => {
             if(pre.querySelector('.run-btn')) return; 
 
             const btn = document.createElement('button');
-            btn.className = 'run-btn'; 
-            btn.innerHTML = '<i class="fa-solid fa-play"></i> Run';
-            pre.style.position = 'relative'; 
+            btn.className = 'run-btn'; btn.innerHTML = '<i class="fa-solid fa-play"></i> Run';
             pre.appendChild(btn);
-
             const outputDiv = document.createElement('div');
-            outputDiv.className = 'code-output'; 
-            outputDiv.innerText = "> Output...";
+            outputDiv.className = 'code-output'; outputDiv.innerText = "> Output...";
             pre.after(outputDiv);
 
             btn.addEventListener('click', () => {
                 const code = block.innerText;
                 outputDiv.classList.add('show'); 
-                const logs = [];
-                const oldLog = console.log; 
-                console.log = (...args) => { logs.push(args.join(' ')); };
-                
-                try { 
-                    eval(code); 
-                    outputDiv.innerText = logs.length > 0 ? logs.join('\n') : "Done (No output)"; 
-                    outputDiv.style.color = "#10b981"; 
-                } catch (err) { 
-                    outputDiv.innerText = "Error: " + err.message; 
-                    outputDiv.style.color = "#ef4444"; 
-                }
+                const logs = []; const oldLog = console.log; console.log = (...args) => logs.push(args.join(' '));
+                try { eval(code); outputDiv.innerText = logs.length > 0 ? logs.join('\n') : "Done"; outputDiv.style.color = "#10b981"; } 
+                catch (err) { outputDiv.innerText = "Error: " + err.message; outputDiv.style.color = "#ef4444"; }
                 console.log = oldLog;
             });
         });
     }
 
-    // --- Focus Mode ---
+    // Focus Mode
     focusBtn.addEventListener('click', () => {
-        sidebar.classList.add('hidden');
-        topHeader.classList.add('hidden');
-        outputPanel.classList.add('hidden');
-        workspace.classList.add('zen');
-        exitFocusBtn.classList.add('show');
-        showToast("Focus Mode Active");
+        sidebar.classList.add('hidden'); topHeader.classList.add('hidden'); outputPanel.classList.add('hidden');
+        workspace.classList.add('zen'); exitFocusBtn.classList.add('show');
     });
     
     exitFocusBtn.addEventListener('click', () => {
-        sidebar.classList.remove('hidden');
-        topHeader.classList.remove('hidden');
-        outputPanel.classList.remove('hidden');
-        workspace.classList.remove('zen');
-        exitFocusBtn.classList.remove('show');
+        sidebar.classList.remove('hidden'); topHeader.classList.remove('hidden'); outputPanel.classList.remove('hidden');
+        workspace.classList.remove('zen'); exitFocusBtn.classList.remove('show');
     });
 
-    // --- New Note ---
+    // New Note
     newNoteBtn.addEventListener('click', () => {
-        userInput.value = '';
-        aiOutput.innerHTML = `<i class="fa-solid fa-layer-group"></i><p>Result appears here</p>`;
+        userInput.value = ''; aiOutput.innerHTML = `<i class="fa-solid fa-layer-group"></i><p>Result appears here</p>`;
         aiOutput.classList.add('empty-state');
-        document.getElementById('inputStats').innerText = "0 words";
-        showToast("New Note");
     });
 
-    // --- Utils ---
+    // Word Count
     userInput.addEventListener('input', (e) => document.getElementById('inputStats').innerText = `${e.target.value.trim().split(/\s+/).length} words`);
 
+    // Helper Functions
     function showToast(msg) { 
-        if(!toast) return;
-        toast.innerText = msg; 
-        toast.classList.add('show'); 
+        if(!toast) return; toast.innerText = msg; toast.classList.add('show'); 
         setTimeout(() => toast.classList.remove('show'), 2000); 
     }
 
@@ -405,16 +326,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function loadList(k, c) {
-        if(!c) return;
-        let l = JSON.parse(localStorage.getItem(k)) || []; c.innerHTML = '';
+        if(!c) return; let l = JSON.parse(localStorage.getItem(k)) || []; c.innerHTML = '';
         l.forEach(i => {
             let el = document.createElement('div'); el.className='list-item'; el.innerText=i.title;
-            el.onclick = () => { 
-                userInput.value=i.o; 
-                aiOutput.innerHTML=marked.parse(i.r); 
-                aiOutput.classList.remove('empty-state');
-                enableLiveCode();
-            };
+            el.onclick = () => { userInput.value=i.o; aiOutput.innerHTML=marked.parse(i.r); aiOutput.classList.remove('empty-state'); enableLiveCode(); };
             c.appendChild(el);
         });
     }
