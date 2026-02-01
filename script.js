@@ -439,7 +439,7 @@ document.addEventListener('DOMContentLoaded', () => {
         l.unshift({id:Date.now(), title:o.substring(0,15)+"...", o, r}); 
         localStorage.setItem(k, JSON.stringify(l.slice(0, 15))); 
     }
-    //  Load List  
+
     function loadList(k, c) {
         if(!c) return; let l = JSON.parse(localStorage.getItem(k)) || []; c.innerHTML = '';
         l.forEach(i => {
