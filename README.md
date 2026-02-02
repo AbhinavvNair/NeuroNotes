@@ -1,4 +1,4 @@
-# 📘 EduSummarizer — Building a Mini LLM from Scratch
+# 📘 EduSummarizer — Building a Mini LLM from Scratch ( AI - Powered Notes Assistant )
 
 EduSummarizer is a **custom-built Language Model developed entirely from scratch using PyTorch**, trained on educational text and deployed as a **full-stack LLM-style web application**.
 
