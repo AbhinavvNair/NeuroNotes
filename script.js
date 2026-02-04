@@ -43,76 +43,62 @@ document.addEventListener('DOMContentLoaded', () => {
     const cmdResults = document.getElementById('cmdResults');
     const toast = document.getElementById('toast');
 
+    // Theme Switch (Sun/Moon)
+    const themeCheckbox = document.getElementById("themeCheckbox");
+
     // State
     let currentRawResponse = ""; 
 
-    // --- 3. LOAD DATA ON STARTUP ---
+    // --- 3. LOAD DATA & THEMES ---
     loadList('notesHistory', historyList);
     loadList('savedNotes', savedList);
     
-    // Load Theme
-    // Setup theme checkbox reference
-// --- THEME SWITCH LOGIC ---
-const themeCheckbox = document.getElementById("themeCheckbox");
+    // Load Accent Color
+    const savedTheme = localStorage.getItem('userTheme');
+    if(savedTheme) {
+        const theme = JSON.parse(savedTheme);
+        setTheme(theme.primary, theme.hover, false);
+    }
 
-if (themeCheckbox) {
-    // Load saved theme
-    let savedMode = localStorage.getItem("themeMode") || "dark";
+    // Load Light/Dark Mode
+    if (themeCheckbox) {
+        let savedMode = localStorage.getItem("themeMode") || "dark";
+        document.documentElement.classList.add(savedMode);
+        themeCheckbox.checked = savedMode === "light";
 
-    // Apply theme
-    document.documentElement.classList.add(savedMode);
-
-    // Sync toggle UI
-    themeCheckbox.checked = savedMode === "light";
-
-    // Toggle theme on switch
-    themeCheckbox.addEventListener("change", () => {
-        if (themeCheckbox.checked) {
-            document.documentElement.classList.remove("dark");
-            document.documentElement.classList.add("light");
-            localStorage.setItem("themeMode", "light");
-            showToast("Light Mode Enabled");
-        } else {
-            document.documentElement.classList.remove("light");
-            document.documentElement.classList.add("dark");
-            localStorage.setItem("themeMode", "dark");
-            showToast("Dark Mode Enabled");
-        }
-    });
-}
-
+        themeCheckbox.addEventListener("change", () => {
+            if (themeCheckbox.checked) {
+                document.documentElement.classList.remove("dark");
+                document.documentElement.classList.add("light");
+                localStorage.setItem("themeMode", "light");
+                showToast("Light Mode Enabled");
+            } else {
+                document.documentElement.classList.remove("light");
+                document.documentElement.classList.add("dark");
+                localStorage.setItem("themeMode", "dark");
+                showToast("Dark Mode Enabled");
+            }
+        });
+    }
 
     // ==========================================
-    // 4. SIDEBAR LOGIC (THE FIX)
+    // 4. SIDEBAR LOGIC
     // ==========================================
-    
-    // Toggle History List
     if(historyToggle && historyList) {
         historyToggle.addEventListener('click', () => {
             const isHidden = historyList.style.display === 'none';
             historyList.style.display = isHidden ? 'flex' : 'none';
             historyToggle.classList.toggle('active', isHidden);
-            
-            // Auto-Close Saved list to keep UI clean
-            if(isHidden && savedList) { 
-                savedList.style.display = 'none'; 
-                savedToggle.classList.remove('active'); 
-            }
+            if(isHidden && savedList) { savedList.style.display = 'none'; savedToggle.classList.remove('active'); }
         });
     }
 
-    // Toggle Saved List
     if(savedToggle && savedList) {
         savedToggle.addEventListener('click', () => {
             const isHidden = savedList.style.display === 'none';
             savedList.style.display = isHidden ? 'flex' : 'none';
             savedToggle.classList.toggle('active', isHidden);
-            
-            // Auto-Close History list
-            if(isHidden && historyList) { 
-                historyList.style.display = 'none'; 
-                historyToggle.classList.remove('active'); 
-            }
+            if(isHidden && historyList) { historyList.style.display = 'none'; historyToggle.classList.remove('active'); }
         });
     }
 
@@ -121,32 +107,23 @@ if (themeCheckbox) {
     // ==========================================
     if(saveNoteBtn) {
         saveNoteBtn.addEventListener('click', () => {
-            // Priority: Raw AI response > Visible Text > Error
             const content = currentRawResponse || aiOutput.innerText;
-            
-            // Create Title from Input (First 20 chars) or Default
-            let title = userInput.value.trim().substring(0, 25);
-            if(title.length === 0) title = "Untitled Note";
+            let title = userInput.value.trim().substring(0, 25) || "Untitled Note";
 
             if(!content || content.includes("Ready for refinement") || content.trim().length === 0) {
-                showToast("Generate a note first!");
-                return;
+                showToast("Generate a note first!"); return;
             }
 
-            // Save to Storage
             saveToList('savedNotes', title, content);
-            
-            // Refresh Sidebar List
             loadList('savedNotes', savedList);
             
-            // Auto-Open "Saved" Sidebar
+            // Auto-open Saved Sidebar
             if(savedList.style.display === 'none') {
                 savedList.style.display = 'flex';
                 savedToggle.classList.add('active');
                 if(historyList) { historyList.style.display = 'none'; historyToggle.classList.remove('active'); }
             }
-            
-            showToast("Note Saved!");
+            showToast("Note Saved to Notebook");
         });
     }
 
@@ -156,12 +133,8 @@ if (themeCheckbox) {
     if(copyBtn) {
         copyBtn.addEventListener('click', () => {
             const textToCopy = aiOutput.innerText;
-            if(!textToCopy || textToCopy.includes("Ready for refinement")) {
-                showToast("Nothing to copy"); return;
-            }
-            navigator.clipboard.writeText(textToCopy)
-                .then(() => showToast("Copied to Clipboard"))
-                .catch(() => showToast("Copy Failed"));
+            if(!textToCopy || textToCopy.includes("Ready for refinement")) { showToast("Nothing to copy"); return; }
+            navigator.clipboard.writeText(textToCopy).then(() => showToast("Copied to Clipboard")).catch(() => showToast("Copy Failed"));
         });
     }
 
@@ -177,15 +150,14 @@ if (themeCheckbox) {
         
         try {
             const response = await fetch("http://127.0.0.1:8000/generate", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
+                method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ prompt: text }),
             });
 
             if (!response.ok) throw new Error("Backend Error");
             const data = await response.json();
             
-            currentRawResponse = data.response; // Store for saving
+            currentRawResponse = data.response; 
             aiOutput.innerHTML = marked.parse(data.response);
             
             if(window.renderMathInElement) {
@@ -194,20 +166,12 @@ if (themeCheckbox) {
             
             aiOutput.classList.remove('empty-state');
             enableLiveCode();
-            
-            // Auto-Save to History
             saveToList('notesHistory', text, data.response);
             loadList('notesHistory', historyList);
-            
             showToast("Refinement Complete");
 
-        } catch (error) { 
-            console.error(error);
-            showToast("Error: " + error.message); 
-        } finally { 
-            processBtn.disabled = false; 
-            processBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Refine'; 
-        }
+        } catch (error) { showToast("Error: " + error.message); } 
+        finally { processBtn.disabled = false; processBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Refine'; }
     });
 
     // ==========================================
@@ -229,30 +193,22 @@ if (themeCheckbox) {
 
             try {
                 const response = await fetch("http://127.0.0.1:8000/generate", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    method: "POST", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ prompt: prompt, temperature: 0.2 }), 
                 });
 
                 if (!response.ok) throw new Error("Backend Error");
                 const data = await response.json();
-                
                 const match = data.response.match(/```mermaid([\s\S]*?)```/);
                 const mermaidCode = match ? match[1].trim() : data.response;
 
                 aiOutput.innerHTML = `<div class="mermaid">${mermaidCode}</div>`;
                 aiOutput.classList.remove('empty-state');
-                
                 await mermaid.run({ nodes: [aiOutput.querySelector('.mermaid')] });
                 showToast("Diagram Created");
 
-            } catch (error) {
-                console.error(error);
-                showToast("Visualization Failed");
-            } finally {
-                visualizeBtn.disabled = false;
-                visualizeBtn.innerHTML = originalIcon;
-            }
+            } catch (error) { console.error(error); showToast("Visualization Failed"); } 
+            finally { visualizeBtn.disabled = false; visualizeBtn.innerHTML = originalIcon; }
         });
     }
 
@@ -263,26 +219,25 @@ if (themeCheckbox) {
         pdfBtn.addEventListener('click', () => {
             if (typeof html2pdf === 'undefined') { alert("PDF Library Missing"); return; }
             if (aiOutput.classList.contains('empty-state')) { showToast("Nothing to export"); return; }
-
+            
             showToast("Generating PDF...");
             const originalIcon = pdfBtn.innerHTML;
             pdfBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; 
-
-            const opt = {
-                margin: 0.5, filename: 'NeuroNotes_Export.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
+            
+            html2pdf().set({ 
+                margin: 0.5, 
+                filename: 'EduSummarizer_Export.pdf', 
+                image: { type: 'jpeg', quality: 0.98 }, 
                 html2canvas: { scale: 2, useCORS: true }, 
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-            };
-
-            html2pdf().set(opt).from(aiOutput).save()
-                .then(() => showToast("PDF Downloaded"))
-                .finally(() => pdfBtn.innerHTML = originalIcon);
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } 
+            }).from(aiOutput).save()
+              .then(() => showToast("PDF Downloaded"))
+              .finally(() => pdfBtn.innerHTML = originalIcon);
         });
     }
 
     // ==========================================
-    // 10. GOD MODE (CTRL + K)
+    // 10. GOD MODE & ACTIONS
     // ==========================================
     function toggleGodMode() {
         if(!cmdPalette) return;
@@ -311,19 +266,24 @@ if (themeCheckbox) {
         if(notify) showToast("Theme Updated");
     }
 
+    // --- EXPANDED THEME LIST ---
     const actions = [
         { title: "New Note", icon: "fa-plus", tag: "Action", action: () => newNoteBtn.click() },
         { title: "Refine Text", icon: "fa-wand-magic-sparkles", tag: "AI", action: () => processBtn.click() },
         { title: "Save Note", icon: "fa-bookmark", tag: "Action", action: () => saveNoteBtn.click() },
-        { title: "Export PDF", icon: "fa-file-pdf", tag: "File", action: () => pdfBtn ? pdfBtn.click() : null }, 
-        { title: "Podcast Play", icon: "fa-play", tag: "Audio", action: () => playAudioBtn.click() },
-        { title: "Visualize", icon: "fa-diagram-project", tag: "Tool", action: () => visualizeBtn.click() },
-        { title: "Focus Mode", icon: "fa-expand", tag: "View", action: () => focusBtn.click() },
-        { title: "Theme: Hacker Green", icon: "fa-terminal", tag: "Theme", action: () => setTheme('#34d399', '#10b981') },
-        { title: "Theme: Default Blue", icon: "fa-droplet", tag: "Theme", action: () => setTheme('#818CF8', '#6366F1') },
-        { title: "Theme: Crimson Red", icon: "fa-palette", tag: "Theme", action: () => setTheme('#ef4444', '#dc2626') },
-        { title: "Theme: Royal Gold", icon: "fa-star", tag: "Theme", action: () => setTheme('#eab308', '#ca8a04') },
-        { title: "Theme: Sunset Orange", icon: "fa-sun", tag: "Theme", action: () => setTheme('#fb923c', '#f97316') },
+        
+        // Colors
+        { title: "Theme: Default Blue", icon: "fa-droplet", tag: "Color", action: () => setTheme('#818CF8', '#6366F1') },
+        { title: "Theme: Hacker Green", icon: "fa-terminal", tag: "Color", action: () => setTheme('#34d399', '#10b981') },
+        { title: "Theme: Crimson Red", icon: "fa-fire", tag: "Color", action: () => setTheme('#ef4444', '#dc2626') },
+        { title: "Theme: Royal Gold", icon: "fa-crown", tag: "Color", action: () => setTheme('#fbbf24', '#d97706') },
+        { title: "Theme: Sunset Orange", icon: "fa-sun", tag: "Color", action: () => setTheme('#fb923c', '#ea580c') },
+        { title: "Theme: Electric Violet", icon: "fa-bolt", tag: "Color", action: () => setTheme('#a78bfa', '#7c3aed') },
+        { title: "Theme: Hot Pink", icon: "fa-heart", tag: "Color", action: () => setTheme('#f472b6', '#db2777') },
+        { title: "Theme: Cyberpunk Teal", icon: "fa-microchip", tag: "Color", action: () => setTheme('#2dd4bf', '#0d9488') },
+        { title: "Theme: Slate Grey", icon: "fa-mountain", tag: "Color", action: () => setTheme('#94a3b8', '#475569') },
+        { title: "Theme: Mint Fresh", icon: "fa-leaf", tag: "Color", action: () => setTheme('#6ee7b7', '#059669') },
+
         { title: "Clear Data", icon: "fa-trash", tag: "Data", action: () => { if(confirm("Clear All?")) { localStorage.clear(); location.reload(); } } }
     ];
 
@@ -400,16 +360,10 @@ if (themeCheckbox) {
         const codes = aiOutput.querySelectorAll('pre code');
         codes.forEach(block => {
             if(!block.className.includes('javascript')) return;
-            const pre = block.parentElement;
-            if(pre.querySelector('.run-btn')) return; 
-
-            const btn = document.createElement('button');
-            btn.className = 'run-btn'; btn.innerHTML = '<i class="fa-solid fa-play"></i> Run';
+            const pre = block.parentElement; if(pre.querySelector('.run-btn')) return;
+            const btn = document.createElement('button'); btn.className = 'run-btn'; btn.innerHTML = '<i class="fa-solid fa-play"></i> Run';
             pre.appendChild(btn);
-            
-            const outputDiv = document.createElement('div');
-            outputDiv.className = 'code-output'; outputDiv.innerText = "> Output...";
-            pre.after(outputDiv);
+            const outputDiv = document.createElement('div'); outputDiv.className = 'code-output'; outputDiv.innerText = "> Output..."; pre.after(outputDiv);
 
             btn.addEventListener('click', () => {
                 const code = block.innerText;
@@ -435,11 +389,8 @@ if (themeCheckbox) {
 
     function showToast(msg) { toast.innerText=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),2000); }
     
-    // STORAGE HELPERS
     function saveToList(key, title, content) { 
         let list = JSON.parse(localStorage.getItem(key)) || []; 
-        // Save format: {id, title, o: originalInput, r: response}
-        // Note: Saved notes might not have 'o' (original input) if saved from AI output directly
         list.unshift({id:Date.now(), title: title.substring(0,25)+"...", o: "", r: content}); 
         localStorage.setItem(key, JSON.stringify(list.slice(0, 20))); 
     }
@@ -451,19 +402,14 @@ if (themeCheckbox) {
         list.forEach(item => {
             let el = document.createElement('div'); el.className='list-item'; el.innerText=item.title;
             el.onclick = () => { 
-                // Restore State
-                if(item.o) userInput.value = item.o; // Restore input if it exists
+                if(item.o) userInput.value = item.o;
                 aiOutput.innerHTML = marked.parse(item.r); 
                 aiOutput.classList.remove('empty-state'); 
                 currentRawResponse = item.r; 
                 enableLiveCode();
-                
-                // On mobile, close sidebar after clicking
                 if(window.innerWidth < 800) sidebar.classList.add('hidden');
             };
             container.appendChild(el);
         });
     }
 });
-
-// To be Continued...
