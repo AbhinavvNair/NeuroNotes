@@ -799,3 +799,31 @@ html.light {
 .cmd-category-title:first-child {
     margin-top: 0;
 }
+
+/* ==========================================
+   CLEAR HISTORY BUTTON
+   ========================================== */
+.clear-history-btn {
+    margin-top: 12px;
+    border-top: 1px solid var(--border);
+    padding-top: 12px !important;
+    color: #ef4444 !important;
+}
+
+.clear-history-btn:hover {
+    background: rgba(239, 68, 68, 0.1) !important;
+    color: #ff6b6b !important;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.clear-history-btn:active {
+    transform: scale(0.98);
+}
+
+.clear-history-btn i {
+    transition: transform 0.2s ease;
+}
+
+.clear-history-btn:hover i {
+    transform: rotate(10deg);
+}
