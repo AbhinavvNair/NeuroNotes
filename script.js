@@ -44,14 +44,42 @@ document.addEventListener('DOMContentLoaded', () => {
     const cmdResults = document.getElementById('cmdResults');
     const toast = document.getElementById('toast');
 
+    // Login Elements
+    const loginScreen = document.getElementById('loginScreen');
+    const loginBtn = document.getElementById('loginSubmitBtn');
+    const appContainer = document.getElementById('appContainer');
+    const loginUser = document.getElementById('loginUser');
+    const loginPass = document.getElementById('loginPass');
+    const loginError = document.getElementById('loginError');
+
     // State
     let currentRawResponse = ""; 
 
-    // --- 3. LOAD DATA & THEMES ---
+    // --- 3. LOGIN LOGIC (NEW) ---
+    if(loginBtn) {
+        loginBtn.addEventListener('click', () => {
+            const user = loginUser.value.trim();
+            const pass = loginPass.value.trim();
+
+            if(user === 'admin' && pass === '1234') {
+                loginScreen.style.opacity = '0';
+                setTimeout(() => {
+                    loginScreen.style.display = 'none';
+                    appContainer.classList.remove('hidden');
+                }, 300);
+            } else {
+                loginError.classList.remove('hidden');
+                loginBtn.style.animation = "pulse 0.2s ease";
+                setTimeout(() => loginBtn.style.animation = "", 200);
+            }
+        });
+    }
+
+    // --- 4. LOAD DATA & THEMES ---
     loadList('notesHistory', historyList);
     loadList('savedNotes', savedList);
     
-    // --- THEME PICKER LOGIC ---
+    // Theme Logic
     const themes = [
         { id: 'nebula', icon: 'fa-moon', name: 'Nebula' },
         { id: 'light', icon: 'fa-sun', name: 'Daylight' },
@@ -65,22 +93,16 @@ document.addEventListener('DOMContentLoaded', () => {
     function applyTheme(index) {
         const theme = themes[index];
         document.documentElement.removeAttribute('data-theme');
-        
         if(theme.id !== 'nebula') {
             document.documentElement.setAttribute('data-theme', theme.id);
         }
-
-        // Update Tooltip for reference
         const btn = document.getElementById("themeBtn");
-        if(btn) btn.title = `Current Theme: ${theme.name}`;
-        
+        if(btn) btn.title = `Current: ${theme.name}`;
         localStorage.setItem('themeIndex', index);
     }
 
-    // Initialize Theme
     applyTheme(currentThemeIndex);
 
-    // Attach Listeners to Dropdown Items
     document.querySelectorAll('.theme-option').forEach(option => {
         option.addEventListener('click', () => {
             const idx = parseInt(option.getAttribute('data-idx'));
@@ -90,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // 4. SIDEBAR LOGIC
+    // 5. SIDEBAR LOGIC
     // ==========================================
     if (historyToggle && historyList) {
         historyToggle.addEventListener('click', () => {
@@ -110,10 +132,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // CLEAR HISTORY
     if (clearHistoryBtn) {
         clearHistoryBtn.addEventListener('click', () => {
-            if (confirm('Are you sure you want to clear all history?')) {
+            if (confirm('Clear all history?')) {
                 localStorage.removeItem('notesHistory');
                 loadList('notesHistory', historyList);
                 if (historyList) { historyList.style.display = 'none'; historyToggle.classList.remove('active'); }
@@ -123,20 +144,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 5. SAVE NOTE
+    // 6. SAVE & COPY
     // ==========================================
     if (saveNoteBtn) {
         saveNoteBtn.addEventListener('click', () => {
             const content = currentRawResponse || aiOutput.innerText;
             let title = userInput.value.trim().substring(0, 25) || "Untitled Note";
-
             if (!content || content.includes("Ready for refinement") || content.trim().length === 0) {
                 showToast("Generate a note first!"); return;
             }
-
             saveToList('savedNotes', title, content);
             loadList('savedNotes', savedList);
-            
             if (savedList.style.display === 'none') {
                 savedList.style.display = 'flex';
                 savedToggle.classList.add('active');
@@ -146,9 +164,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ==========================================
-    // 6. COPY BUTTON
-    // ==========================================
     if (copyBtn) {
         copyBtn.addEventListener('click', () => {
             const textToCopy = aiOutput.innerText;

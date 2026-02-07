@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduSummarizer | AI Workspace</title>
+    <title>EduSummarizer | Login</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -19,7 +19,32 @@
 </head>
 <body>
 
-    <div class="app-container" id="appContainer">
+    <div id="loginScreen" class="login-container">
+        <div class="login-card">
+            <div class="login-logo">
+                <i class="fa-solid fa-brain"></i>
+            </div>
+            <h2>Welcome Back</h2>
+            <p>Sign in to your AI Workspace</p>
+
+            <div class="input-group">
+                <i class="fa-solid fa-user"></i>
+                <input type="text" id="loginUser" placeholder="Username (admin)" autocomplete="off">
+            </div>
+            
+            <div class="input-group">
+                <i class="fa-solid fa-lock"></i>
+                <input type="password" id="loginPass" placeholder="Password (1234)">
+            </div>
+
+            <button id="loginSubmitBtn" class="login-btn">
+                Enter Workspace <i class="fa-solid fa-arrow-right"></i>
+            </button>
+            
+            <p id="loginError" class="login-msg hidden">Invalid Credentials</p>
+        </div>
+    </div>
+    <div class="app-container hidden" id="appContainer">
         <aside class="sidebar" id="sidebar">
             <div class="logo-section">
                 <i class="fa-solid fa-brain logo-icon"></i>
@@ -72,25 +97,15 @@
                         <button id="themeBtn" class="theme-orb" title="Select Theme">
                             <i class="fa-solid fa-palette"></i>
                         </button>
-                        
                         <div class="theme-menu">
-                            <button class="theme-option" data-idx="0">
-                                <i class="fa-solid fa-moon"></i> Nebula
-                            </button>
-                            <button class="theme-option" data-idx="1">
-                                <i class="fa-solid fa-sun"></i> Daylight
-                            </button>
-                            <button class="theme-option" data-idx="2">
-                                <i class="fa-solid fa-battery-quarter"></i> Midnight
-                            </button>
-                            <button class="theme-option" data-idx="3">
-                                <i class="fa-solid fa-terminal"></i> Hacker
-                            </button>
-                            <button class="theme-option" data-idx="4">
-                                <i class="fa-solid fa-fire"></i> Sunset
-                            </button>
+                            <button class="theme-option" data-idx="0"><i class="fa-solid fa-moon"></i> Nebula</button>
+                            <button class="theme-option" data-idx="1"><i class="fa-solid fa-sun"></i> Daylight</button>
+                            <button class="theme-option" data-idx="2"><i class="fa-solid fa-battery-quarter"></i> Midnight</button>
+                            <button class="theme-option" data-idx="3"><i class="fa-solid fa-terminal"></i> Hacker</button>
+                            <button class="theme-option" data-idx="4"><i class="fa-solid fa-fire"></i> Sunset</button>
                         </div>
                     </div>
+
                     <button class="action-btn secondary" id="focusBtn" title="Focus Mode">
                         <i class="fa-solid fa-expand"></i>
                     </button>
@@ -170,7 +185,7 @@
         <div class="palette-modal">
             <div class="palette-search">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="cmdInput" placeholder="Type a command (e.g. 'Midnight')..." autocomplete="off">
+                <input type="text" id="cmdInput" placeholder="Type a command..." autocomplete="off">
                 <span class="palette-shortcut">Esc</span>
             </div>
             <div class="palette-results" id="cmdResults"></div>
@@ -180,8 +195,8 @@
             </div>
         </div>
     </div>
-    <div id="toast" class="toast">Action Complete</div>
     
+    <div id="toast" class="toast">Action Complete</div>
     <script src="script.js"></script>
 </body>
 </html>
