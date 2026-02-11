@@ -20,7 +20,6 @@
 <body>
 
     <div id="loginScreen" class="login-container">
-        
         <div class="ambient-blob blob-purple"></div>
         <div class="ambient-blob blob-blue"></div>
         <div class="ambient-blob blob-indigo"></div>
@@ -34,12 +33,12 @@
 
             <div class="input-group">
                 <i class="fa-solid fa-user"></i>
-                <input type="text" id="loginUser" placeholder="Username (admin)" autocomplete="off">
+                <input type="text" id="loginUser" placeholder="Username" autocomplete="off">
             </div>
             
             <div class="input-group">
                 <i class="fa-solid fa-lock"></i>
-                <input type="password" id="loginPass" placeholder="Password (1234)">
+                <input type="password" id="loginPass" placeholder="Password">
             </div>
 
             <button id="loginSubmitBtn" class="login-btn fluid-gradient">
@@ -74,6 +73,10 @@
                     </button>
                     <div id="savedList" class="nav-list" style="display: none;"></div>
                 </div>
+                
+                <button class="nav-btn" id="settingsBtn" style="margin-top: auto;">
+                    <i class="fa-solid fa-gear"></i> Settings
+                </button>
                 
                 <button class="nav-btn clear-history-btn" id="clearHistoryBtn">
                     <i class="fa-solid fa-trash-can"></i> Clear History
@@ -175,7 +178,6 @@
                         </div>
                         <div class="audio-controls">
                             <select id="voiceSelect" class="voice-select"></select>
-
                             <button class="audio-btn" id="stopAudioBtn"><i class="fa-solid fa-stop"></i></button>
                             <button class="audio-btn main-play" id="playAudioBtn"><i class="fa-solid fa-play"></i></button>
                             <button class="audio-btn speed" id="speedBtn">1x</button>
@@ -203,6 +205,46 @@
         </div>
     </div>
     
+    <div id="settingsModal" class="palette-overlay hidden">
+        <div class="palette-modal settings-card glass-panel" style="width: 500px; padding: 0;">
+            <div class="settings-header">
+                <h2><i class="fa-solid fa-sliders"></i> App Preferences</h2>
+                <button id="closeSettingsBtn" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="settings-body">
+                <div class="setting-group">
+                    <label>Workspace Username</label>
+                    <div class="input-group" style="margin-bottom: 0;">
+                        <i class="fa-solid fa-user"></i>
+                        <input type="text" id="settingUser" placeholder="e.g. admin">
+                    </div>
+                </div>
+                
+                <div class="setting-group">
+                    <label>Workspace Password</label>
+                    <div class="input-group" style="margin-bottom: 0;">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" id="settingPass" placeholder="e.g. 1234">
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label>AI System Prompt (Custom Instructions)</label>
+                    <textarea id="settingPrompt" rows="3" placeholder="E.g., You are an expert tutor. Summarize clearly..."></textarea>
+                    <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 5px;">
+                        This tells the AI how to act. It gets sent with every request.
+                    </small>
+                </div>
+            </div>
+            
+            <div class="settings-footer">
+                <button id="saveSettingsBtn" class="login-btn fluid-gradient" style="margin: 0;">
+                    Save Preferences
+                </button>
+            </div>
+        </div>
+    </div>
     <div id="toast" class="toast">Action Complete</div>
     <script src="script.js"></script>
 </body>

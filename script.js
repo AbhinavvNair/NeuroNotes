@@ -8,7 +8,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const userInput = document.getElementById('userInput');
     const aiOutput = document.getElementById('aiOutput');
     
-    // Action Buttons
     const newNoteBtn = document.getElementById('newNoteBtn');
     const processBtn = document.getElementById('processBtn');
     const visualizeBtn = document.getElementById('visualizeBtn');
@@ -16,17 +15,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const copyBtn = document.getElementById('copyBtn');
     const pdfBtn = document.getElementById('pdfBtn');
     
-    // View Controls
     const focusBtn = document.getElementById('focusBtn'); 
     const exitFocusBtn = document.getElementById('exitFocusBtn'); 
     
-    // Audio / Mic
     const playAudioBtn = document.getElementById('playAudioBtn');
     const stopAudioBtn = document.getElementById('stopAudioBtn');
     const speedBtn = document.getElementById('speedBtn');
     const micBtn = document.getElementById('micBtn');
 
-    // Sidebar & Lists
     const historyToggle = document.getElementById('historyToggle');
     const historyList = document.getElementById('historyList');
     const savedToggle = document.getElementById('savedToggle');
@@ -38,7 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const outputPanel = document.getElementById('outputPanel');
     const workspace = document.getElementById('workspace');
 
-    // God Mode
     const cmdPalette = document.getElementById('cmdPalette');
     const cmdInput = document.getElementById('cmdInput');
     const cmdResults = document.getElementById('cmdResults');
@@ -52,16 +47,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginPass = document.getElementById('loginPass');
     const loginError = document.getElementById('loginError');
 
-    // State
+    // Settings Elements
+    const settingsBtn = document.getElementById('settingsBtn');
+    const settingsModal = document.getElementById('settingsModal');
+    const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+    const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+    const settingUser = document.getElementById('settingUser');
+    const settingPass = document.getElementById('settingPass');
+    const settingPrompt = document.getElementById('settingPrompt');
+
     let currentRawResponse = ""; 
 
-    // --- 3. LOGIN LOGIC ---
+    // --- 3. DYNAMIC CREDENTIALS & SETTINGS ---
+    // If not set, default to admin/1234
+    let savedUser = localStorage.getItem('appUser') || 'admin';
+    let savedPass = localStorage.getItem('appPass') || '1234';
+    let savedPrompt = localStorage.getItem('appPrompt') || 'You are an expert AI tutor. Please summarize and format the response beautifully in Markdown.';
+
+    // --- LOGIN LOGIC ---
     if(loginBtn) {
         loginBtn.addEventListener('click', () => {
             const user = loginUser.value.trim();
             const pass = loginPass.value.trim();
 
-            if(user === 'admin' && pass === '1234') {
+            // Uses dynamic variables instead of hardcoded strings
+            if(user === savedUser && pass === savedPass) {
                 loginScreen.style.opacity = '0';
                 setTimeout(() => {
                     loginScreen.style.display = 'none';
@@ -75,11 +85,47 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- SETTINGS LOGIC ---
+    if(settingsBtn) {
+        settingsBtn.addEventListener('click', () => {
+            // Pre-fill inputs with current saved values
+            settingUser.value = savedUser;
+            settingPass.value = savedPass;
+            settingPrompt.value = savedPrompt;
+            
+            settingsModal.classList.remove('hidden');
+            setTimeout(() => settingsModal.classList.add('show'), 10);
+        });
+    }
+
+    if(closeSettingsBtn) {
+        closeSettingsBtn.addEventListener('click', () => {
+            settingsModal.classList.remove('show');
+            setTimeout(() => settingsModal.classList.add('hidden'), 200);
+        });
+    }
+
+    if(saveSettingsBtn) {
+        saveSettingsBtn.addEventListener('click', () => {
+            // Save to Local Storage
+            localStorage.setItem('appUser', settingUser.value.trim() || 'admin');
+            localStorage.setItem('appPass', settingPass.value.trim() || '1234');
+            localStorage.setItem('appPrompt', settingPrompt.value.trim());
+
+            // Update live variables
+            savedUser = localStorage.getItem('appUser');
+            savedPass = localStorage.getItem('appPass');
+            savedPrompt = localStorage.getItem('appPrompt');
+
+            showToast("Preferences Saved!");
+            closeSettingsBtn.click();
+        });
+    }
+
     // --- 4. LOAD DATA & THEMES ---
     loadList('notesHistory', historyList);
     loadList('savedNotes', savedList);
     
-    // Theme Logic
     const themes = [
         { id: 'nebula', icon: 'fa-moon', name: 'Nebula' },
         { id: 'light', icon: 'fa-sun', name: 'Daylight' },
@@ -185,7 +231,10 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch("http://127.0.0.1:8000/generate", {
                 method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt: text }),
+                body: JSON.stringify({ 
+                    prompt: text,
+                    system_prompt: savedPrompt // Sending custom instructions to backend!
+                }),
             });
 
             if (!response.ok) throw new Error("Backend Error");
@@ -296,6 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { title: "Visualize", icon: "fa-diagram-project", tag: "Tool", action: () => visualizeBtn.click() },
         { title: "Focus Mode", icon: "fa-expand", tag: "View", action: () => focusBtn.click() },
         { title: "Podcast Play", icon: "fa-play", tag: "Audio", action: () => playAudioBtn.click() },
+        { title: "Settings", icon: "fa-gear", tag: "System", action: () => settingsBtn.click() },
         { title: "Clear Data", icon: "fa-trash", tag: "Data", action: () => { if (confirm("Clear All?")) { localStorage.clear(); location.reload(); } } },
         { title: "Theme: Nebula", icon: "fa-moon", tag: "Theme", action: () => applyTheme(0) },
         { title: "Theme: Daylight", icon: "fa-sun", tag: "Theme", action: () => applyTheme(1) },
@@ -355,12 +405,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let speeds = [1, 1.5, 2]; 
     let speedIndex = 0;
 
-    // --- VOICE LOADING LOGIC ---
     function populateVoices() {
         const allVoices = window.speechSynthesis.getVoices();
+        if(!voiceSelect) return;
         voiceSelect.innerHTML = '';
         
-        // Curated list of accents
         const preferredAccents = [
             { id: 'us-female', name: '🇺🇸 US Female', keywords: ['Google US English', 'Zira', 'Samantha'] },
             { id: 'us-male', name: '🇺🇸 US Male', keywords: ['Google US English', 'David', 'Alex'] },
@@ -376,13 +425,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (match) {
                 const option = document.createElement('option');
                 option.textContent = accent.name;
-                option.value = match.name; // Store actual voice name as value
+                option.value = match.name; 
                 voiceSelect.appendChild(option);
                 addedCount++;
             }
         });
 
-        // Fallback: If no curated voices found, list first 5 English voices
         if(addedCount === 0) {
             allVoices.filter(v => v.lang.includes('en')).slice(0, 5).forEach(v => {
                 const option = document.createElement('option');
@@ -398,7 +446,6 @@ document.addEventListener('DOMContentLoaded', () => {
         speechSynthesis.onvoiceschanged = populateVoices;
     }
 
-    // --- PLAY BUTTON LOGIC ---
     if (playAudioBtn) {
         playAudioBtn.addEventListener('click', () => {
             if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) { 
@@ -417,13 +464,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 speech.text = t; 
                 speech.rate = speeds[speedIndex];
                 
-                // SET THE SELECTED VOICE
-                const selectedName = voiceSelect.value;
-                const allVoices = window.speechSynthesis.getVoices();
-                const chosenVoice = allVoices.find(v => v.name === selectedName);
-                
-                if(chosenVoice) {
-                    speech.voice = chosenVoice;
+                if(voiceSelect) {
+                    const selectedName = voiceSelect.value;
+                    const allVoices = window.speechSynthesis.getVoices();
+                    const chosenVoice = allVoices.find(v => v.name === selectedName);
+                    if(chosenVoice) speech.voice = chosenVoice;
                 }
 
                 window.speechSynthesis.speak(speech); 
@@ -432,22 +477,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (stopAudioBtn) { 
-        stopAudioBtn.addEventListener('click', () => { 
-            window.speechSynthesis.cancel(); 
-            playAudioBtn.innerHTML = '<i class="fa-solid fa-play"></i>'; 
-        }); 
-    }
-    
-    if (speedBtn) { 
-        speedBtn.addEventListener('click', () => { 
-            speedIndex = (speedIndex + 1) % speeds.length; 
-            speedBtn.innerText = speeds[speedIndex] + 'x'; 
-        }); 
-    }
-    
+    if (stopAudioBtn) { stopAudioBtn.addEventListener('click', () => { window.speechSynthesis.cancel(); playAudioBtn.innerHTML = '<i class="fa-solid fa-play"></i>'; }); }
+    if (speedBtn) { speedBtn.addEventListener('click', () => { speedIndex = (speedIndex + 1) % speeds.length; speedBtn.innerText = speeds[speedIndex] + 'x'; }); }
     speech.onend = () => playAudioBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
-    
+
     // ==========================================
     // 12. HELPER FUNCTIONS
     // ==========================================
