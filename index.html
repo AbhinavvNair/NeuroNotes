@@ -20,8 +20,13 @@
 <body>
 
     <div id="loginScreen" class="login-container">
-        <div class="login-card">
-            <div class="login-logo">
+        
+        <div class="ambient-blob blob-purple"></div>
+        <div class="ambient-blob blob-blue"></div>
+        <div class="ambient-blob blob-indigo"></div>
+
+        <div class="login-card glass-panel">
+            <div class="login-logo floating">
                 <i class="fa-solid fa-brain"></i>
             </div>
             <h2>Welcome Back</h2>
@@ -37,7 +42,7 @@
                 <input type="password" id="loginPass" placeholder="Password (1234)">
             </div>
 
-            <button id="loginSubmitBtn" class="login-btn">
+            <button id="loginSubmitBtn" class="login-btn fluid-gradient">
                 Enter Workspace <i class="fa-solid fa-arrow-right"></i>
             </button>
             
@@ -163,14 +168,14 @@
                         <p>Ready for refinement</p>
                     </div>
 
-                   <div class="audio-player">
+                    <div class="audio-player">
                         <div class="audio-info">
                             <i class="fa-solid fa-podcast"></i> 
                             <span>Podcast Mode</span>
                         </div>
                         <div class="audio-controls">
                             <select id="voiceSelect" class="voice-select"></select>
-                            
+
                             <button class="audio-btn" id="stopAudioBtn"><i class="fa-solid fa-stop"></i></button>
                             <button class="audio-btn main-play" id="playAudioBtn"><i class="fa-solid fa-play"></i></button>
                             <button class="audio-btn speed" id="speedBtn">1x</button>
