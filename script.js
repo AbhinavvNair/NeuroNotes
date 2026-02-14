@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+
     // --- 1. INITIALIZATION ---
     if (typeof mermaid !== 'undefined') {
         mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
@@ -7,17 +8,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 2. DOM ELEMENTS ---
     const userInput = document.getElementById('userInput');
     const aiOutput = document.getElementById('aiOutput');
-    
+
     // Buttons
     const newNoteBtn = document.getElementById('newNoteBtn');
     const processBtn = document.getElementById('processBtn');
     const visualizeBtn = document.getElementById('visualizeBtn');
-    const saveNoteBtn = document.getElementById('saveNoteBtn'); 
+    const saveNoteBtn = document.getElementById('saveNoteBtn');
     const copyBtn = document.getElementById('copyBtn');
     const pdfBtn = document.getElementById('pdfBtn');
-    const focusBtn = document.getElementById('focusBtn'); 
-    const exitFocusBtn = document.getElementById('exitFocusBtn'); 
-    const focusSoundBtn = document.getElementById('focusSoundBtn'); // NEW
+    const focusBtn = document.getElementById('focusBtn');
+    const exitFocusBtn = document.getElementById('exitFocusBtn');
+    const focusSoundBtn = document.getElementById('focusSoundBtn');
 
     // Audio Elements
     const playAudioBtn = document.getElementById('playAudioBtn');
@@ -32,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedToggle = document.getElementById('savedToggle');
     const savedList = document.getElementById('savedList');
     const clearHistoryBtn = document.getElementById('clearHistoryBtn');
-    
+
     const sidebar = document.getElementById('sidebar');
     const topHeader = document.getElementById('topHeader');
     const outputPanel = document.getElementById('outputPanel');
@@ -44,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const cmdResults = document.getElementById('cmdResults');
     const toast = document.getElementById('toast');
 
-    // Login Elements
+    // --- LOGIN ELEMENTS (MUST BE DECLARED BEFORE USE) ---
     const loginScreen = document.getElementById('loginScreen');
     const loginBtn = document.getElementById('loginSubmitBtn');
     const appContainer = document.getElementById('appContainer');
@@ -52,34 +53,70 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginPass = document.getElementById('loginPass');
     const loginError = document.getElementById('loginError');
 
-    // Settings Elements
+    // --- SETTINGS ELEMENTS ---
     const settingsBtn = document.getElementById('settingsBtn');
     const settingsModal = document.getElementById('settingsModal');
     const closeSettingsBtn = document.getElementById('closeSettingsBtn');
     const saveSettingsBtn = document.getElementById('saveSettingsBtn');
-    const settingUser = document.getElementById('settingUser');
-    const settingPass = document.getElementById('settingPass');
     const settingPrompt = document.getElementById('settingPrompt');
 
-    let currentRawResponse = ""; 
+    // --- AUTH SESSION CHECK (NOW SAFE TO USE VARIABLES) ---
+    const token = localStorage.getItem("access_token");
+
+    if (!token) {
+        loginScreen.style.display = "flex";
+        appContainer.classList.add("hidden");
+    } else {
+        loginScreen.style.display = "none";
+        appContainer.classList.remove("hidden");
+    }
+
+
+
+    let currentRawResponse = "";
 
     // --- 3. CREDENTIALS & LOGIN LOGIC ---
-    let savedUser = localStorage.getItem('appUser') || 'admin';
-    let savedPass = localStorage.getItem('appPass') || '1234';
+
     let savedPrompt = localStorage.getItem('appPrompt') || 'You are an expert AI tutor. Please summarize and format the response beautifully in Markdown.';
 
-    if(loginBtn) {
-        loginBtn.addEventListener('click', () => {
-            const user = loginUser.value.trim();
-            const pass = loginPass.value.trim();
+    if (loginBtn) {
+        loginBtn.addEventListener('click', async () => {
+            const email = loginUser.value.trim();
+            const password = loginPass.value.trim();
 
-            if(user === savedUser && pass === savedPass) {
-                loginScreen.style.opacity = '0';
-                setTimeout(() => {
-                    loginScreen.style.display = 'none';
-                    appContainer.classList.remove('hidden');
-                }, 500);
-            } else {
+            if (!email || !password) {
+                loginError.textContent = "Please enter email and password";
+                loginError.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const formData = new URLSearchParams();
+                formData.append("username", email);
+                formData.append("password", password);
+
+                const response = await fetch("http://127.0.0.1:8000/login", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error("Invalid credentials");
+                }
+
+                const data = await response.json();
+
+                localStorage.setItem("access_token", data.access_token);
+
+                loginScreen.style.display = 'none';
+                appContainer.classList.remove('hidden');
+
+
+            } catch (error) {
+                loginError.textContent = "Invalid Credentials";
                 loginError.classList.remove('hidden');
                 loginBtn.style.animation = "shake 0.3s ease";
                 setTimeout(() => loginBtn.style.animation = "", 300);
@@ -87,38 +124,33 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+
     // --- 4. SETTINGS MODAL LOGIC ---
-    if(settingsBtn) {
+    if (settingsBtn) {
         settingsBtn.addEventListener('click', () => {
-            settingUser.value = savedUser;
-            settingPass.value = savedPass;
             settingPrompt.value = savedPrompt;
             settingsModal.classList.remove('hidden');
             setTimeout(() => settingsModal.classList.add('show'), 10);
         });
     }
 
-    if(closeSettingsBtn) {
+
+    if (closeSettingsBtn) {
         closeSettingsBtn.addEventListener('click', () => {
             settingsModal.classList.remove('show');
             setTimeout(() => settingsModal.classList.add('hidden'), 200);
         });
     }
 
-    if(saveSettingsBtn) {
+    if (saveSettingsBtn) {
         saveSettingsBtn.addEventListener('click', () => {
-            localStorage.setItem('appUser', settingUser.value.trim() || 'admin');
-            localStorage.setItem('appPass', settingPass.value.trim() || '1234');
             localStorage.setItem('appPrompt', settingPrompt.value.trim());
-
-            savedUser = localStorage.getItem('appUser');
-            savedPass = localStorage.getItem('appPass');
             savedPrompt = localStorage.getItem('appPrompt');
-
             showToast("Preferences Saved!");
             closeSettingsBtn.click();
         });
     }
+
 
     // --- 5. THEME LOGIC ---
     const themes = [
@@ -130,15 +162,15 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     let currentThemeIndex = parseInt(localStorage.getItem('themeIndex')) || 0;
-    
+
     function applyTheme(index) {
         const theme = themes[index];
         document.documentElement.removeAttribute('data-theme');
-        if(theme.id !== 'nebula') {
+        if (theme.id !== 'nebula') {
             document.documentElement.setAttribute('data-theme', theme.id);
         }
         const btn = document.getElementById("themeBtn");
-        if(btn) btn.title = `Current: ${theme.name}`;
+        if (btn) btn.title = `Current: ${theme.name}`;
         localStorage.setItem('themeIndex', index);
     }
     applyTheme(currentThemeIndex);
@@ -206,50 +238,61 @@ document.addEventListener('DOMContentLoaded', () => {
     processBtn.addEventListener('click', async () => {
         const text = userInput.value.trim();
         if (!text) { showToast("Enter notes first"); return; }
-        
-        processBtn.disabled = true; 
+
+        processBtn.disabled = true;
         processBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Thinking...';
-        
+
         try {
+            const token = localStorage.getItem("access_token");
+
+            if (!token) {
+                showToast("Session expired. Please login again.");
+                return;
+            }
+
             const response = await fetch("http://127.0.0.1:8000/generate", {
-                method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 
-                    prompt: text,
-                    system_prompt: savedPrompt // Uses custom prompt from settings
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({
+                    prompt: text
                 }),
             });
 
+
             if (!response.ok) throw new Error("Backend Error");
             const data = await response.json();
-            
-            currentRawResponse = data.response; 
+
+            currentRawResponse = data.response;
             aiOutput.innerHTML = marked.parse(data.response);
-            
+
             if (window.renderMathInElement) {
-                renderMathInElement(aiOutput, { delimiters: [{left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false}] });
+                renderMathInElement(aiOutput, { delimiters: [{ left: "$$", right: "$$", display: true }, { left: "$", right: "$", display: false }] });
             }
-            
+
             aiOutput.classList.remove('empty-state');
             enableLiveCode(); // New function for Insta-Code
             saveToList('notesHistory', text, data.response);
             loadList('notesHistory', historyList);
             showToast("Refinement Complete");
 
-        } catch (error) { showToast("Error: " + error.message); } 
+        } catch (error) { showToast("Error: " + error.message); }
         finally { processBtn.disabled = false; processBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Refine'; }
     });
 
     // --- 8. AUDIO & VOICES (CURATED + TRUMP HACK) ---
     let voices = [];
-    let speech = new SpeechSynthesisUtterance(); 
-    let speeds = [1, 1.5, 2]; 
+    let speech = new SpeechSynthesisUtterance();
+    let speeds = [1, 1.5, 2];
     let speedIndex = 0;
 
     function populateVoices() {
         const allVoices = window.speechSynthesis.getVoices();
-        if(!voiceSelect) return;
+        if (!voiceSelect) return;
         voiceSelect.innerHTML = '';
-        
+
         const preferredAccents = [
             { id: 'trump-hack', name: '🎙️ Donald Trump (Impression)', keywords: ['Google US English', 'David', 'Alex'], pitch: 0.6, rateMod: 0.85 },
             { id: 'us-female', name: '🇺🇸 US Female', keywords: ['Google US English Female', 'Zira', 'Samantha'], pitch: 1, rateMod: 1 },
@@ -257,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
             { id: 'uk-female', name: '🇬🇧 UK Female', keywords: ['Google UK English Female', 'Susan', 'Hazel'], pitch: 1, rateMod: 1 },
             { id: 'uk-male', name: '🇬🇧 UK Male', keywords: ['Google UK English Male', 'George', 'Daniel'], pitch: 1, rateMod: 1 },
             { id: 'aus', name: '🇦🇺 Australian', keywords: ['Google Australian', 'Karen', 'Catherine'], pitch: 1, rateMod: 1 },
-            { id: 'ind', name: '🇮🇳 Indian', keywords: ['Google हिन्दी', 'Rishi', 'Veena', 'Indian'], pitch: 1, rateMod: 1 } 
+            { id: 'ind', name: '🇮🇳 Indian', keywords: ['Google हिन्दी', 'Rishi', 'Veena', 'Indian'], pitch: 1, rateMod: 1 }
         ];
 
         let addedCount = 0;
@@ -266,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (match) {
                 const option = document.createElement('option');
                 option.textContent = accent.name;
-                option.value = match.name; 
+                option.value = match.name;
                 option.dataset.pitch = accent.pitch;
                 option.dataset.rateMod = accent.rateMod;
                 voiceSelect.appendChild(option);
@@ -274,7 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        if(addedCount === 0) {
+        if (addedCount === 0) {
             allVoices.filter(v => v.lang.includes('en')).slice(0, 5).forEach(v => {
                 const option = document.createElement('option');
                 option.textContent = v.name.substring(0, 25);
@@ -293,22 +336,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (playAudioBtn) {
         playAudioBtn.addEventListener('click', () => {
-            if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) { 
-                window.speechSynthesis.pause(); 
-                playAudioBtn.innerHTML = '<i class="fa-solid fa-play"></i>'; 
-            } 
-            else if (window.speechSynthesis.paused) { 
-                window.speechSynthesis.resume(); 
-                playAudioBtn.innerHTML = '<i class="fa-solid fa-pause"></i>'; 
-            } 
+            if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+                window.speechSynthesis.pause();
+                playAudioBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+            }
+            else if (window.speechSynthesis.paused) {
+                window.speechSynthesis.resume();
+                playAudioBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+            }
             else {
                 let t = window.getSelection().toString() || aiOutput.innerText || userInput.value;
                 if (!t || t.includes("Ready")) return;
-                
-                window.speechSynthesis.cancel(); 
-                speech.text = t; 
-                
-                if(voiceSelect) {
+
+                window.speechSynthesis.cancel();
+                speech.text = t;
+
+                if (voiceSelect) {
                     const selectedOption = voiceSelect.options[voiceSelect.selectedIndex];
                     const selectedName = selectedOption.value;
                     const customPitch = parseFloat(selectedOption.dataset.pitch) || 1;
@@ -316,14 +359,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     const allVoices = window.speechSynthesis.getVoices();
                     const chosenVoice = allVoices.find(v => v.name === selectedName);
-                    
-                    if(chosenVoice) {
+
+                    if (chosenVoice) {
                         speech.voice = chosenVoice;
                         speech.pitch = customPitch;
                         speech.rate = speeds[speedIndex] * customRateMod;
                     }
                 }
-                window.speechSynthesis.speak(speech); 
+                window.speechSynthesis.speak(speech);
                 playAudioBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
             }
         });
@@ -345,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const AudioContext = window.AudioContext || window.webkitAudioContext;
                     audioCtx = new AudioContext();
                 }
-                const bufferSize = audioCtx.sampleRate * 2; 
+                const bufferSize = audioCtx.sampleRate * 2;
                 const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
                 const data = buffer.getChannelData(0);
 
@@ -353,7 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 for (let i = 0; i < bufferSize; i++) {
                     const white = Math.random() * 2 - 1;
                     const brown = (lastOut + (0.02 * white)) / 1.02;
-                    data[i] = brown * 3.5; 
+                    data[i] = brown * 3.5;
                     lastOut = brown;
                 }
 
@@ -361,20 +404,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 noiseSource.buffer = buffer;
                 noiseSource.loop = true;
                 const noiseGain = audioCtx.createGain();
-                noiseGain.gain.value = 0.05; 
-                
+                noiseGain.gain.value = 0.05;
+
                 noiseSource.connect(noiseGain);
                 noiseGain.connect(audioCtx.destination);
                 noiseSource.start();
                 isNoisePlaying = true;
-                
+
                 focusSoundBtn.classList.add('active');
                 focusSoundBtn.style.color = "var(--primary)";
                 focusSoundBtn.style.borderColor = "var(--primary)";
                 focusSoundBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
                 showToast("Deep Focus: ON");
             } else {
-                if(noiseSource) noiseSource.stop();
+                if (noiseSource) noiseSource.stop();
                 isNoisePlaying = false;
                 focusSoundBtn.classList.remove('active');
                 focusSoundBtn.style.color = "";
@@ -396,7 +439,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const header = document.createElement('div');
             header.className = 'code-header';
-            
+
             const dots = document.createElement('div');
             dots.className = 'window-dots';
             dots.innerHTML = '<span></span><span></span><span></span>';
@@ -434,22 +477,22 @@ document.addEventListener('DOMContentLoaded', () => {
     function takeCodeSnapshot(preElement) {
         showToast("Snapping Code...");
         const clone = preElement.cloneNode(true);
-        clone.style.width = "800px"; 
+        clone.style.width = "800px";
         clone.style.padding = "40px";
         clone.style.background = "linear-gradient(135deg, #1e293b, #0f172a)";
         clone.style.borderRadius = "20px";
         clone.style.boxShadow = "0 20px 50px rgba(0,0,0,0.5)";
-        
+
         const code = clone.querySelector('code');
-        if(code) code.style.whiteSpace = "pre-wrap";
+        if (code) code.style.whiteSpace = "pre-wrap";
 
         const actions = clone.querySelector('.code-actions');
-        if(actions) actions.style.display = 'none';
+        if (actions) actions.style.display = 'none';
 
         clone.style.position = "fixed"; clone.style.top = "-9999px"; clone.style.left = "-9999px";
         document.body.appendChild(clone);
 
-        if(typeof html2canvas !== 'undefined') {
+        if (typeof html2canvas !== 'undefined') {
             html2canvas(clone, { backgroundColor: null, scale: 2 }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = 'edu-snippet-' + Date.now() + '.png';
@@ -465,23 +508,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function executeCode(block, pre) {
         const oldOut = pre.nextElementSibling;
-        if(oldOut && oldOut.classList.contains('code-output')) oldOut.remove();
+        if (oldOut && oldOut.classList.contains('code-output')) oldOut.remove();
 
-        const outputDiv = document.createElement('div'); 
-        outputDiv.className = 'code-output show'; 
-        
-        const logs = []; 
-        const oldLog = console.log; 
+        const outputDiv = document.createElement('div');
+        outputDiv.className = 'code-output show';
+
+        const logs = [];
+        const oldLog = console.log;
         console.log = (...args) => logs.push(args.join(' '));
-        
-        try { 
-            eval(block.innerText); 
-            outputDiv.innerText = logs.length > 0 ? logs.join('\n') : "> Executed (No output)"; 
-            outputDiv.style.color = "#10b981"; 
-        } 
-        catch (err) { 
-            outputDiv.innerText = "Error: " + err.message; 
-            outputDiv.style.color = "#ef4444"; 
+
+        try {
+            eval(block.innerText);
+            outputDiv.innerText = logs.length > 0 ? logs.join('\n') : "> Executed (No output)";
+            outputDiv.style.color = "#10b981";
+        }
+        catch (err) {
+            outputDiv.innerText = "Error: " + err.message;
+            outputDiv.style.color = "#ef4444";
         }
         console.log = oldLog;
         pre.after(outputDiv);
@@ -494,10 +537,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (aiOutput.classList.contains('empty-state')) { showToast("Nothing to export"); return; }
             showToast("Generating PDF...");
             const originalIcon = pdfBtn.innerHTML;
-            pdfBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; 
-            html2pdf().set({ 
-                margin: 0.5, filename: 'EduSummarizer.pdf', image: { type: 'jpeg', quality: 0.98 }, 
-                html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } 
+            pdfBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            html2pdf().set({
+                margin: 0.5, filename: 'EduSummarizer.pdf', image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
             }).from(aiOutput).save().then(() => showToast("PDF Downloaded")).finally(() => pdfBtn.innerHTML = originalIcon);
         });
     }
@@ -505,28 +548,74 @@ document.addEventListener('DOMContentLoaded', () => {
     if (visualizeBtn) {
         visualizeBtn.addEventListener('click', async () => {
             const text = userInput.value.trim() || aiOutput.innerText;
-            if (!text || text.length < 5) { showToast("Enter more text"); return; }
+
+            if (!text || text.length < 5) {
+                showToast("Enter more text");
+                return;
+            }
+
             visualizeBtn.disabled = true;
             const originalIcon = visualizeBtn.innerHTML;
             visualizeBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
             showToast("Designing...");
-            const prompt = "Based on text, generate MERMAID.JS graph code. STRICT: Output ONLY code inside ```mermaid ... ```. Text: " + text.substring(0, 1500); 
+
+            const prompt = "Based on text, generate MERMAID.JS graph code. STRICT: Output ONLY code inside ```mermaid ... ```. Text: " + text.substring(0, 1500);
+
             try {
+                const token = localStorage.getItem("access_token");
+
+                if (!token) {
+                    showToast("Session expired. Please login again.");
+                    visualizeBtn.disabled = false;
+                    visualizeBtn.innerHTML = originalIcon;
+                    return;
+                }
+
                 const response = await fetch("http://127.0.0.1:8000/generate", {
-                    method: "POST", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ prompt: prompt, temperature: 0.2 }), 
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + token
+                    },
+                    body: JSON.stringify({
+                        prompt: prompt,
+                        temperature: 0.2
+                    }),
                 });
+
+                if (response.status === 401) {
+                    localStorage.removeItem("access_token");
+                    loginScreen.style.display = "flex";
+                    appContainer.classList.add("hidden");
+                    showToast("Session expired. Please login again.");
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error("Backend Error");
+                }
+
                 const data = await response.json();
+
                 const match = data.response.match(/```mermaid([\s\S]*?)```/);
                 const mermaidCode = match ? match[1].trim() : data.response;
+
                 aiOutput.innerHTML = "<div class='mermaid'>" + mermaidCode + "</div>";
                 aiOutput.classList.remove('empty-state');
+
                 await mermaid.run({ nodes: [aiOutput.querySelector('.mermaid')] });
+
                 showToast("Diagram Created");
-            } catch (error) { showToast("Visualization Failed"); } 
-            finally { visualizeBtn.disabled = false; visualizeBtn.innerHTML = originalIcon; }
+
+            } catch (error) {
+                showToast("Visualization Failed");
+            } finally {
+                visualizeBtn.disabled = false;
+                visualizeBtn.innerHTML = originalIcon;
+            }
         });
     }
+
 
     // God Mode Logic
     function toggleGodMode() {
@@ -535,7 +624,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isHidden) {
             cmdPalette.classList.remove('hidden');
             setTimeout(() => cmdPalette.classList.add('show'), 10);
-            cmdInput.value = ''; cmdInput.focus(); renderCommands(''); 
+            cmdInput.value = ''; cmdInput.focus(); renderCommands('');
         } else {
             cmdPalette.classList.remove('show');
             setTimeout(() => cmdPalette.classList.add('hidden'), 200);
@@ -551,7 +640,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { title: "New Note", icon: "fa-plus", tag: "Action", action: () => newNoteBtn.click() },
         { title: "Refine Text", icon: "fa-wand-magic-sparkles", tag: "AI", action: () => processBtn.click() },
         { title: "Save Note", icon: "fa-bookmark", tag: "Action", action: () => saveNoteBtn.click() },
-        { title: "Export PDF", icon: "fa-file-pdf", tag: "File", action: () => pdfBtn ? pdfBtn.click() : null }, 
+        { title: "Export PDF", icon: "fa-file-pdf", tag: "File", action: () => pdfBtn ? pdfBtn.click() : null },
         { title: "Visualize", icon: "fa-diagram-project", tag: "Tool", action: () => visualizeBtn.click() },
         { title: "Focus Mode", icon: "fa-expand", tag: "View", action: () => focusBtn.click() },
         { title: "Settings", icon: "fa-gear", tag: "System", action: () => settingsBtn.click() },
@@ -604,7 +693,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let recognition = new SpeechRecognition();
         recognition.continuous = false; recognition.lang = 'en-US';
         micBtn.addEventListener('click', () => {
-            if (micBtn.classList.contains('recording')) { recognition.stop(); } 
+            if (micBtn.classList.contains('recording')) { recognition.stop(); }
             else { try { recognition.start(); micBtn.classList.add('recording'); showToast("Listening..."); } catch (e) { showToast("Mic Error"); } }
         });
         recognition.onresult = (event) => {
