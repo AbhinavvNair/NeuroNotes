@@ -26,6 +26,9 @@ API_KEY = os.getenv("GROQ_API_KEY")
 model_context = {}
 
 
+# -------------------------
+# Lifespan (Groq Client Init)
+# -------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("🔌 Initializing NeuroNotes Pro...")
@@ -55,17 +58,31 @@ app.add_middleware(
 )
 
 
+# -------------------------
+# Request Schemas
+# -------------------------
 class GenerateRequest(BaseModel):
     prompt: str
     max_tokens: int = 1000
     temperature: float = 0.7
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+# -------------------------
+# Routes
+# -------------------------
 @app.get("/")
 async def read_index():
     return FileResponse("index.html")
 
 
+# -------------------------
+# Register
+# -------------------------
 @app.post("/register", response_model=schemas.UserResponse)
 def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     existing_user = (
@@ -89,6 +106,9 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 
+# -------------------------
+# Login
+# -------------------------
 @app.post("/login")
 def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
@@ -116,6 +136,9 @@ def login(
     }
 
 
+# -------------------------
+# Current User
+# -------------------------
 @app.get("/me")
 def read_current_user(
     current_user: models.User = Depends(get_current_user),
@@ -127,6 +150,29 @@ def read_current_user(
     }
 
 
+# -------------------------
+# Change Password
+# -------------------------
+@app.post("/change-password")
+def change_password(
+    request: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if not verify_password(request.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    current_user.hashed_password = hash_password(request.new_password)
+
+    db.commit()
+    db.refresh(current_user)
+
+    return {"message": "Password updated successfully"}
+
+
+# -------------------------
+# Generate (Protected)
+# -------------------------
 @app.post("/generate")
 async def generate_text(
     request: GenerateRequest,
@@ -158,10 +204,15 @@ async def generate_text(
         print(f"❌ Groq API Error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Groq API Error: {str(e)}")
 
-
+# -------------------------
+# Static Files
+# -------------------------
 app.mount("/", StaticFiles(directory="./"), name="static")
 
 
+# -------------------------
+# Run Server
+# -------------------------
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
