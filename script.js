@@ -70,6 +70,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const newPasswordInput = document.getElementById('newPassword');
     const confirmNewPasswordInput = document.getElementById('confirmNewPassword');
 
+    function forceLogout(message = "Session expired. Please login again.") {
+        localStorage.removeItem("access_token");
+        sessionStorage.removeItem("access_token");
+
+        appContainer.classList.add('hidden');
+        loginScreen.style.display = 'flex';
+
+        userInput.value = "";
+        aiOutput.innerHTML = '<i class="fa-solid fa-sparkles"></i><p>Ready for refinement</p>';
+        aiOutput.classList.add('empty-state');
+
+        showToast(message);
+    }
+
     // --- GLOBAL API FETCH WRAPPER ---
     async function apiFetch(url, options = {}) {
         const token =
@@ -91,20 +105,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // GLOBAL 401 HANDLING
         if (response.status === 401) {
-            localStorage.removeItem("access_token");
-            sessionStorage.removeItem("access_token");
-
-            loginScreen.style.display = "flex";
-            appContainer.classList.add("hidden");
-
-            showToast("Session expired. Please login again.");
+            forceLogout();
             throw new Error("Unauthorized");
         }
+
 
         return response;
     }
 
 
+    async function validateSession() {
+        const token =
+            localStorage.getItem("access_token") ||
+            sessionStorage.getItem("access_token");
+
+        if (!token) {
+            forceLogout("Please login to continue");
+            return;
+        }
+
+        try {
+            const response = await apiFetch("http://127.0.0.1:8000/generate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ prompt: "ping" })
+            });
+
+            if (!response.ok) {
+                throw new Error();
+            }
+
+            loginScreen.style.display = 'none';
+            appContainer.classList.remove('hidden');
+
+        } catch {
+            forceLogout();
+        }
+    }
 
 
 
@@ -144,25 +181,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- LOGOUT LOGIC ---
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
-
-            // Clear both storage types
-            localStorage.removeItem("access_token");
-            sessionStorage.removeItem("access_token");
-
-            // Reset UI
-            appContainer.classList.add('hidden');
-            loginScreen.style.display = 'flex';
-
-            // Optional cleanup
-            userInput.value = "";
-            aiOutput.innerHTML = '<i class="fa-solid fa-sparkles"></i><p>Ready for refinement</p>';
-            aiOutput.classList.add('empty-state');
-            loginUser.value = "";
-            loginPass.value = "";
-            loginError.classList.add('hidden');
-
-            showToast("Logged out successfully");
+            forceLogout("Logged out successfully");
         });
+
     }
 
 
@@ -873,4 +894,6 @@ document.addEventListener('DOMContentLoaded', () => {
             container.appendChild(el);
         });
     }
+    // Validate token on page load
+    validateSession();
 });
