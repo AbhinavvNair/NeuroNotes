@@ -8,6 +8,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 2. DOM ELEMENTS ---
     const userInput = document.getElementById('userInput');
     const aiOutput = document.getElementById('aiOutput');
+    const loginToggle = document.getElementById('toggleAuthMode');
+    const rememberMe = document.getElementById('rememberMe');
+    const confirmPass = document.getElementById('confirmPass');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+
 
     // Buttons
     const newNoteBtn = document.getElementById('newNoteBtn');
@@ -59,9 +65,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeSettingsBtn = document.getElementById('closeSettingsBtn');
     const saveSettingsBtn = document.getElementById('saveSettingsBtn');
     const settingPrompt = document.getElementById('settingPrompt');
+    const changePasswordBtn = document.getElementById('changePasswordBtn');
+    const currentPasswordInput = document.getElementById('currentPassword');
+    const newPasswordInput = document.getElementById('newPassword');
+    const confirmNewPasswordInput = document.getElementById('confirmNewPassword');
+
 
     // --- AUTH SESSION CHECK (NOW SAFE TO USE VARIABLES) ---
-    const token = localStorage.getItem("access_token");
+    const token = localStorage.getItem("access_token") || sessionStorage.getItem("access_token");
 
     if (!token) {
         loginScreen.style.display = "flex";
@@ -74,13 +85,66 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     let currentRawResponse = "";
+    let savedPrompt = localStorage.getItem('appPrompt') ||
+        'You are an expert AI tutor. Summarize clearly using clean Markdown.';
 
-    // --- 3. CREDENTIALS & LOGIN LOGIC ---
 
-    let savedPrompt = localStorage.getItem('appPrompt') || 'You are an expert AI tutor. Please summarize and format the response beautifully in Markdown.';
+    // --- 3. AUTH LOGIC ---
+
+    let isRegisterMode = false;
+
+    if (loginToggle) {
+        loginToggle.addEventListener('click', () => {
+            isRegisterMode = !isRegisterMode;
+            const confirmGroup = document.getElementById('confirmPasswordGroup');
+
+            if (isRegisterMode) {
+                confirmGroup.classList.remove('hidden');
+            } else {
+                confirmGroup.classList.add('hidden');
+            }
+
+
+            if (isRegisterMode) {
+                loginBtn.innerHTML = 'Create Account <i class="fa-solid fa-user-plus"></i>';
+                loginToggle.innerText = "Already have an account? Login";
+            } else {
+                loginBtn.innerHTML = 'Enter Workspace <i class="fa-solid fa-arrow-right"></i>';
+                loginToggle.innerText = "Don't have an account? Register";
+            }
+
+            loginError.classList.add('hidden');
+        });
+    }
+
+    // --- LOGOUT LOGIC ---
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+
+            // Clear both storage types
+            localStorage.removeItem("access_token");
+            sessionStorage.removeItem("access_token");
+
+            // Reset UI
+            appContainer.classList.add('hidden');
+            loginScreen.style.display = 'flex';
+
+            // Optional cleanup
+            userInput.value = "";
+            aiOutput.innerHTML = '<i class="fa-solid fa-sparkles"></i><p>Ready for refinement</p>';
+            aiOutput.classList.add('empty-state');
+            loginUser.value = "";
+            loginPass.value = "";
+            loginError.classList.add('hidden');
+
+            showToast("Logged out successfully");
+        });
+    }
+
 
     if (loginBtn) {
         loginBtn.addEventListener('click', async () => {
+
             const email = loginUser.value.trim();
             const password = loginPass.value.trim();
 
@@ -90,7 +154,49 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+
+            if (isRegisterMode) {
+                if (!confirmPass.value.trim()) {
+                    loginError.textContent = "Please confirm your password";
+                    loginError.classList.remove('hidden');
+                    return;
+                }
+
+                if (password !== confirmPass.value.trim()) {
+                    loginError.textContent = "Passwords do not match";
+                    loginError.classList.remove('hidden');
+                    return;
+                }
+            }
+
+
             try {
+
+                if (isRegisterMode) {
+                    // REGISTER
+                    const response = await fetch("http://127.0.0.1:8000/register", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            email: email,
+                            password: password
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error("Registration failed");
+                    }
+
+                    showToast("Account created. Please login.");
+                    isRegisterMode = false;
+                    loginBtn.innerHTML = 'Enter Workspace <i class="fa-solid fa-arrow-right"></i>';
+                    loginToggle.innerText = "Don't have an account? Register";
+                    return;
+                }
+
+                // LOGIN
                 const formData = new URLSearchParams();
                 formData.append("username", email);
                 formData.append("password", password);
@@ -109,20 +215,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const data = await response.json();
 
-                localStorage.setItem("access_token", data.access_token);
+                if (rememberMe && rememberMe.checked) {
+                    localStorage.setItem("access_token", data.access_token);
+                } else {
+                    sessionStorage.setItem("access_token", data.access_token);
+                }
 
                 loginScreen.style.display = 'none';
                 appContainer.classList.remove('hidden');
 
-
             } catch (error) {
-                loginError.textContent = "Invalid Credentials";
+                loginError.textContent = error.message;
                 loginError.classList.remove('hidden');
-                loginBtn.style.animation = "shake 0.3s ease";
-                setTimeout(() => loginBtn.style.animation = "", 300);
             }
         });
     }
+
 
 
     // --- 4. SETTINGS MODAL LOGIC ---
@@ -150,6 +258,62 @@ document.addEventListener('DOMContentLoaded', () => {
             closeSettingsBtn.click();
         });
     }
+
+    // --- CHANGE PASSWORD LOGIC ---
+    if (changePasswordBtn) {
+        changePasswordBtn.addEventListener('click', async () => {
+
+            const currentPassword = currentPasswordInput.value.trim();
+            const newPassword = newPasswordInput.value.trim();
+            const confirmPassword = confirmNewPasswordInput.value.trim();
+
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                showToast("Please fill all password fields");
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                showToast("New passwords do not match");
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem("access_token") || sessionStorage.getItem("access_token");
+
+                if (!token) {
+                    showToast("Session expired. Please login again.");
+                    return;
+                }
+
+                const response = await fetch("http://127.0.0.1:8000/change-password", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + token
+                    },
+                    body: JSON.stringify({
+                        old_password: currentPassword,
+                        new_password: newPassword
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error("Incorrect current password");
+                }
+
+                showToast("Password updated successfully");
+
+                currentPasswordInput.value = "";
+                newPasswordInput.value = "";
+                confirmNewPasswordInput.value = "";
+
+            } catch (error) {
+                showToast(error.message);
+            }
+
+        });
+    }
+
 
 
     // --- 5. THEME LOGIC ---
@@ -243,7 +407,7 @@ document.addEventListener('DOMContentLoaded', () => {
         processBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Thinking...';
 
         try {
-            const token = localStorage.getItem("access_token");
+            const token = localStorage.getItem("access_token") || sessionStorage.getItem("access_token");
 
             if (!token) {
                 showToast("Session expired. Please login again.");
@@ -262,7 +426,18 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
 
-            if (!response.ok) throw new Error("Backend Error");
+            if (response.status === 401) {
+                localStorage.removeItem("access_token");
+                sessionStorage.removeItem("access_token");
+                loginScreen.style.display = "flex";
+                appContainer.classList.add("hidden");
+                showToast("Session expired. Please login again.");
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error("Backend Error");
+            }
             const data = await response.json();
 
             currentRawResponse = data.response;
@@ -562,7 +737,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const prompt = "Based on text, generate MERMAID.JS graph code. STRICT: Output ONLY code inside ```mermaid ... ```. Text: " + text.substring(0, 1500);
 
             try {
-                const token = localStorage.getItem("access_token");
+                const token = localStorage.getItem("access_token") || sessionStorage.getItem("access_token");
 
                 if (!token) {
                     showToast("Session expired. Please login again.");
@@ -585,6 +760,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (response.status === 401) {
                     localStorage.removeItem("access_token");
+                    sessionStorage.removeItem("access_token");
                     loginScreen.style.display = "flex";
                     appContainer.classList.add("hidden");
                     showToast("Session expired. Please login again.");

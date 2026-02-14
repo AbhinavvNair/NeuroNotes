@@ -1,24 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EduSummarizer | Login</title>
-    
+
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
-    
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
 
     <div id="loginScreen" class="login-container">
@@ -30,25 +32,46 @@
             <div class="login-logo floating">
                 <i class="fa-solid fa-brain"></i>
             </div>
-            <h2>Welcome Back</h2>
-            <p>Sign in to your AI Workspace</p>
+
+            <h2 id="authTitle">Welcome Back</h2>
+            <p id="authSubtitle">Sign in to your AI Workspace</p>
 
             <div class="input-group">
                 <i class="fa-solid fa-user"></i>
                 <input type="text" id="loginUser" placeholder="Email" autocomplete="off">
             </div>
-            
+
             <div class="input-group">
                 <i class="fa-solid fa-lock"></i>
                 <input type="password" id="loginPass" placeholder="Password">
             </div>
 
+            <!-- Confirm password (hidden by default, used for Register mode) -->
+            <div class="input-group hidden" id="confirmPasswordGroup">
+                <i class="fa-solid fa-lock"></i>
+                <input type="password" id="confirmPass" placeholder="Confirm Password">
+            </div>
+
+            <!-- Remember Me -->
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px;">
+                <label style="font-size:0.85rem; color:#94A3B8;">
+                    <input type="checkbox" id="rememberMe" style="margin-right:6px;">
+                    Remember Me
+                </label>
+
+                <button id="toggleAuthMode"
+                    style="background:none; border:none; color:#818CF8; cursor:pointer; font-size:0.85rem;">
+                    Create Account
+                </button>
+            </div>
+
             <button id="loginSubmitBtn" class="login-btn fluid-gradient">
                 Enter Workspace <i class="fa-solid fa-arrow-right"></i>
             </button>
-            
+
             <p id="loginError" class="login-msg hidden">Invalid Credentials</p>
         </div>
+
     </div>
     <div class="app-container hidden" id="appContainer">
         <aside class="sidebar" id="sidebar">
@@ -56,12 +79,12 @@
                 <i class="fa-solid fa-brain logo-icon"></i>
                 <h2>EduSummarizer</h2>
             </div>
-            
+
             <nav class="nav-menu">
                 <button class="nav-btn active" id="newNoteBtn">
                     <i class="fa-solid fa-plus"></i> New Note
                 </button>
-                
+
                 <div class="nav-section">
                     <button class="nav-btn" id="historyToggle">
                         <i class="fa-solid fa-clock-rotate-left"></i> History
@@ -75,11 +98,11 @@
                     </button>
                     <div id="savedList" class="nav-list" style="display: none;"></div>
                 </div>
-                
+
                 <button class="nav-btn" id="settingsBtn" style="margin-top: auto;">
                     <i class="fa-solid fa-gear"></i> Settings
                 </button>
-                
+
                 <button class="nav-btn clear-history-btn" id="clearHistoryBtn">
                     <i class="fa-solid fa-trash-can"></i> Clear History
                 </button>
@@ -89,11 +112,16 @@
                 <div class="user-card">
                     <div class="user-avatar">YS</div>
                     <div class="user-info">
-                        <span class="name">Yuvraj Singh</span>
-                        <span class="role">Developer Mode</span>
+                        <span class="name">Logged In</span>
+                        <span class="role">User</span>
                     </div>
                 </div>
+
+                <button class="nav-btn logout-btn" id="logoutBtn" style="margin-top: 10px;">
+                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                </button>
             </div>
+
         </aside>
 
         <main class="main-content" id="mainContent">
@@ -102,7 +130,7 @@
                     <h1>Workspace</h1>
                 </div>
                 <div class="header-actions">
-                    
+
                     <div class="theme-wrapper">
                         <button id="themeBtn" class="theme-orb" title="Select Theme">
                             <i class="fa-solid fa-palette"></i>
@@ -110,8 +138,10 @@
                         <div class="theme-menu">
                             <button class="theme-option" data-idx="0"><i class="fa-solid fa-moon"></i> Nebula</button>
                             <button class="theme-option" data-idx="1"><i class="fa-solid fa-sun"></i> Daylight</button>
-                            <button class="theme-option" data-idx="2"><i class="fa-solid fa-battery-quarter"></i> Midnight</button>
-                            <button class="theme-option" data-idx="3"><i class="fa-solid fa-terminal"></i> Hacker</button>
+                            <button class="theme-option" data-idx="2"><i class="fa-solid fa-battery-quarter"></i>
+                                Midnight</button>
+                            <button class="theme-option" data-idx="3"><i class="fa-solid fa-terminal"></i>
+                                Hacker</button>
                             <button class="theme-option" data-idx="4"><i class="fa-solid fa-fire"></i> Sunset</button>
                         </div>
                     </div>
@@ -123,11 +153,11 @@
                     <button class="action-btn secondary" id="focusBtn" title="Focus Mode">
                         <i class="fa-solid fa-expand"></i>
                     </button>
-                    
+
                     <button class="action-btn secondary" id="pdfBtn" title="Export PDF">
                         <i class="fa-solid fa-file-pdf"></i> PDF
                     </button>
-                    
+
                     <button class="action-btn primary" id="processBtn">
                         <i class="fa-solid fa-wand-magic-sparkles"></i> Refine
                     </button>
@@ -150,7 +180,8 @@
                             <button class="chip" onclick="setTemplate('math')">Math</button>
                         </div>
                     </div>
-                    <textarea id="userInput" placeholder="Paste your educational content here for Grok to refine..."></textarea>
+                    <textarea id="userInput"
+                        placeholder="Paste your educational content here for Grok to refine..."></textarea>
                     <div class="panel-footer" id="inputFooter">
                         <span class="status-indicator" id="inputStats">0 words</span>
                     </div>
@@ -171,7 +202,7 @@
                             </button>
                         </div>
                     </div>
-                    
+
                     <div id="aiOutput" class="markdown-content empty-state">
                         <i class="fa-solid fa-sparkles"></i>
                         <p>Ready for refinement</p>
@@ -179,13 +210,14 @@
 
                     <div class="audio-player">
                         <div class="audio-info">
-                            <i class="fa-solid fa-podcast"></i> 
+                            <i class="fa-solid fa-podcast"></i>
                             <span>Podcast Mode</span>
                         </div>
                         <div class="audio-controls">
                             <select id="voiceSelect" class="voice-select"></select>
                             <button class="audio-btn" id="stopAudioBtn"><i class="fa-solid fa-stop"></i></button>
-                            <button class="audio-btn main-play" id="playAudioBtn"><i class="fa-solid fa-play"></i></button>
+                            <button class="audio-btn main-play" id="playAudioBtn"><i
+                                    class="fa-solid fa-play"></i></button>
                             <button class="audio-btn speed" id="speedBtn">1x</button>
                         </div>
                     </div>
@@ -210,34 +242,50 @@
             </div>
         </div>
     </div>
-    
+
     <div id="settingsModal" class="palette-overlay hidden">
         <div class="palette-modal settings-card glass-panel" style="width: 500px; padding: 0;">
             <div class="settings-header">
                 <h2><i class="fa-solid fa-sliders"></i> App Preferences</h2>
                 <button id="closeSettingsBtn" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            
-            <div class="settings-body">
-                
 
+            <div class="settings-body">
+
+                <!-- AI Prompt Settings -->
                 <div class="setting-group">
                     <label>AI System Prompt (Custom Instructions)</label>
-                    <textarea id="settingPrompt" rows="3" placeholder="E.g., You are an expert tutor. Summarize clearly..."></textarea>
+                    <textarea id="settingPrompt" rows="3"
+                        placeholder="E.g., You are an expert tutor. Summarize clearly..."></textarea>
                     <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 5px;">
                         This tells the AI how to act. It gets sent with every request.
                     </small>
                 </div>
+
+                <!-- Change Password Section -->
+                <div class="setting-group" style="margin-top:25px;">
+                    <label>Change Password</label>
+
+                    <input type="password" id="currentPassword" placeholder="Current Password"
+                        style="margin-top:10px; width:100%; padding:8px;">
+
+                    <input type="password" id="newPassword" placeholder="New Password"
+                        style="margin-top:10px; width:100%; padding:8px;">
+
+                    <input type="password" id="confirmNewPassword" placeholder="Confirm New Password"
+                        style="margin-top:10px; width:100%; padding:8px;">
+
+                    <button id="changePasswordBtn" class="login-btn fluid-gradient" style="margin-top:15px;">
+                        Update Password
+                    </button>
+                </div>
+
             </div>
-            
-            <div class="settings-footer">
-                <button id="saveSettingsBtn" class="login-btn fluid-gradient" style="margin: 0;">
-                    Save Preferences
-                </button>
-            </div>
+
         </div>
     </div>
     <div id="toast" class="toast">Action Complete</div>
     <script src="script.js"></script>
 </body>
+
 </html>

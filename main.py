@@ -73,14 +73,6 @@ class ChangePasswordRequest(BaseModel):
 
 
 # -------------------------
-# Routes
-# -------------------------
-@app.get("/")
-async def read_index():
-    return FileResponse("index.html")
-
-
-# -------------------------
 # Register
 # -------------------------
 @app.post("/register", response_model=schemas.UserResponse)
@@ -149,6 +141,24 @@ def read_current_user(
         "is_active": current_user.is_active,
     }
 
+@app.post("/change-password")
+def change_password(
+    payload: schemas.ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    # Verify old password
+    if not verify_password(payload.old_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Old password is incorrect")
+
+    # Hash new password
+    current_user.hashed_password = hash_password(payload.new_password)
+
+    db.commit()
+    db.refresh(current_user)
+
+    return {"message": "Password updated successfully"}
+
 
 # -------------------------
 # Change Password
@@ -207,7 +217,7 @@ async def generate_text(
 # -------------------------
 # Static Files
 # -------------------------
-app.mount("/", StaticFiles(directory="./"), name="static")
+app.mount("/", StaticFiles(directory=".", html=True), name="static")
 
 
 # -------------------------
