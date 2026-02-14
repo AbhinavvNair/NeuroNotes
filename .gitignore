@@ -1,14 +1,48 @@
+# =========================
+# Virtual Environment
+# =========================
+.venv/
+venv/
 
-data/dataset.txt
-
-train.zip
-
-data/train.bin
-
-data/dataset.txt
-
-train.zip
-
-data/train.bin
-
+# =========================
+# Environment Variables
+# =========================
 .env
+
+# =========================
+# Python Cache
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.py[cod]
+
+# =========================
+# ML Data & Models
+# =========================
+data/dataset.txt
+data/train.bin
+train.zip
+*.pt
+*.bin
+*.model
+*.vocab
+
+# =========================
+# OS / Editor
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# Jupyter
+# =========================
+.ipynb_checkpoints/
