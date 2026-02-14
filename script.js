@@ -70,17 +70,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const newPasswordInput = document.getElementById('newPassword');
     const confirmNewPasswordInput = document.getElementById('confirmNewPassword');
 
+    // --- GLOBAL API FETCH WRAPPER ---
+    async function apiFetch(url, options = {}) {
+        const token =
+            localStorage.getItem("access_token") ||
+            sessionStorage.getItem("access_token");
 
-    // --- AUTH SESSION CHECK (NOW SAFE TO USE VARIABLES) ---
-    const token = localStorage.getItem("access_token") || sessionStorage.getItem("access_token");
+        const headers = {
+            ...(options.headers || {})
+        };
 
-    if (!token) {
-        loginScreen.style.display = "flex";
-        appContainer.classList.add("hidden");
-    } else {
-        loginScreen.style.display = "none";
-        appContainer.classList.remove("hidden");
+        if (token) {
+            headers["Authorization"] = "Bearer " + token;
+        }
+
+        const response = await fetch(url, {
+            ...options,
+            headers
+        });
+
+        // GLOBAL 401 HANDLING
+        if (response.status === 401) {
+            localStorage.removeItem("access_token");
+            sessionStorage.removeItem("access_token");
+
+            loginScreen.style.display = "flex";
+            appContainer.classList.add("hidden");
+
+            showToast("Session expired. Please login again.");
+            throw new Error("Unauthorized");
+        }
+
+        return response;
     }
+
+
 
 
 
@@ -186,8 +210,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
 
                     if (!response.ok) {
-                        throw new Error("Registration failed");
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || "Registration failed");
                     }
+
 
                     showToast("Account created. Please login.");
                     isRegisterMode = false;
@@ -210,8 +236,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (!response.ok) {
-                    throw new Error("Invalid credentials");
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || "Invalid credentials");
                 }
+
 
                 const data = await response.json();
 
@@ -278,19 +306,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             try {
-                const token = localStorage.getItem("access_token") || sessionStorage.getItem("access_token");
-
-                if (!token) {
-                    showToast("Session expired. Please login again.");
-                    return;
-                }
-
-                const response = await fetch("http://127.0.0.1:8000/change-password", {
+                const response = await apiFetch("http://127.0.0.1:8000/change-password", {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": "Bearer " + token
-                    },
                     body: JSON.stringify({
                         old_password: currentPassword,
                         new_password: newPassword
@@ -407,33 +424,16 @@ document.addEventListener('DOMContentLoaded', () => {
         processBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Thinking...';
 
         try {
-            const token = localStorage.getItem("access_token") || sessionStorage.getItem("access_token");
-
-            if (!token) {
-                showToast("Session expired. Please login again.");
-                return;
-            }
-
-            const response = await fetch("http://127.0.0.1:8000/generate", {
+            const response = await apiFetch("http://127.0.0.1:8000/generate", {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": "Bearer " + token
+                    "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
                     prompt: text
                 }),
             });
 
-
-            if (response.status === 401) {
-                localStorage.removeItem("access_token");
-                sessionStorage.removeItem("access_token");
-                loginScreen.style.display = "flex";
-                appContainer.classList.add("hidden");
-                showToast("Session expired. Please login again.");
-                return;
-            }
 
             if (!response.ok) {
                 throw new Error("Backend Error");
@@ -737,35 +737,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const prompt = "Based on text, generate MERMAID.JS graph code. STRICT: Output ONLY code inside ```mermaid ... ```. Text: " + text.substring(0, 1500);
 
             try {
-                const token = localStorage.getItem("access_token") || sessionStorage.getItem("access_token");
 
-                if (!token) {
-                    showToast("Session expired. Please login again.");
-                    visualizeBtn.disabled = false;
-                    visualizeBtn.innerHTML = originalIcon;
-                    return;
-                }
-
-                const response = await fetch("http://127.0.0.1:8000/generate", {
+                const response = await apiFetch("http://127.0.0.1:8000/generate", {
                     method: "POST",
                     headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": "Bearer " + token
+                        "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
                         prompt: prompt,
                         temperature: 0.2
                     }),
                 });
-
-                if (response.status === 401) {
-                    localStorage.removeItem("access_token");
-                    sessionStorage.removeItem("access_token");
-                    loginScreen.style.display = "flex";
-                    appContainer.classList.add("hidden");
-                    showToast("Session expired. Please login again.");
-                    return;
-                }
 
                 if (!response.ok) {
                     throw new Error("Backend Error");
@@ -785,10 +767,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             } catch (error) {
                 showToast("Visualization Failed");
-            } finally {
-                visualizeBtn.disabled = false;
-                visualizeBtn.innerHTML = originalIcon;
             }
+
         });
     }
 
