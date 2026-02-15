@@ -4,15 +4,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from openai import OpenAI
 from dotenv import load_dotenv
 
-from app.dependencies import get_db
 from app import models, schemas
+from app.dependencies import get_db
 from app.auth import (
     hash_password,
     verify_password,
@@ -26,9 +25,7 @@ API_KEY = os.getenv("GROQ_API_KEY")
 model_context = {}
 
 
-# -------------------------
 # Lifespan (Groq Client Init)
-# -------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("🔌 Initializing NeuroNotes Pro...")
@@ -58,23 +55,16 @@ app.add_middleware(
 )
 
 
-# -------------------------
-# Request Schemas
-# -------------------------
+# Generate Request Schema
 class GenerateRequest(BaseModel):
     prompt: str
     max_tokens: int = 1000
     temperature: float = 0.7
 
 
-class ChangePasswordRequest(BaseModel):
-    current_password: str
-    new_password: str
+# AUTH ENDPOINTS
 
-
-# -------------------------
 # Register
-# -------------------------
 @app.post("/register", response_model=schemas.UserResponse)
 def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     existing_user = (
@@ -98,9 +88,7 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 
-# -------------------------
 # Login
-# -------------------------
 @app.post("/login")
 def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
@@ -128,9 +116,7 @@ def login(
     }
 
 
-# -------------------------
 # Current User
-# -------------------------
 @app.get("/me")
 def read_current_user(
     current_user: models.User = Depends(get_current_user),
@@ -141,17 +127,17 @@ def read_current_user(
         "is_active": current_user.is_active,
     }
 
+
+# Change Password
 @app.post("/change-password")
 def change_password(
     payload: schemas.ChangePasswordRequest,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    # Verify old password
     if not verify_password(payload.old_password, current_user.hashed_password):
         raise HTTPException(status_code=400, detail="Old password is incorrect")
 
-    # Hash new password
     current_user.hashed_password = hash_password(payload.new_password)
 
     db.commit()
@@ -160,29 +146,70 @@ def change_password(
     return {"message": "Password updated successfully"}
 
 
-# -------------------------
-# Change Password
-# -------------------------
-@app.post("/change-password")
-def change_password(
-    request: ChangePasswordRequest,
+# NOTES CRUD (PHASE 2)
+
+# Create Note
+@app.post("/notes", response_model=schemas.NoteResponse)
+def create_note(
+    note: schemas.NoteCreate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    if not verify_password(request.current_password, current_user.hashed_password):
-        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    new_note = models.Note(
+        title=note.title,
+        content=note.content,
+        owner_id=current_user.id,
+    )
 
-    current_user.hashed_password = hash_password(request.new_password)
-
+    db.add(new_note)
     db.commit()
-    db.refresh(current_user)
+    db.refresh(new_note)
 
-    return {"message": "Password updated successfully"}
+    return new_note
 
 
-# -------------------------
-# Generate (Protected)
-# -------------------------
+# Get User Notes
+@app.get("/notes", response_model=list[schemas.NoteResponse])
+def get_notes(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    notes = (
+        db.query(models.Note)
+        .filter(models.Note.owner_id == current_user.id)
+        .order_by(models.Note.created_at.desc())
+        .all()
+    )
+
+    return notes
+
+
+# Delete Note
+@app.delete("/notes/{note_id}")
+def delete_note(
+    note_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    note = (
+        db.query(models.Note)
+        .filter(
+            models.Note.id == note_id,
+            models.Note.owner_id == current_user.id,
+        )
+        .first()
+    )
+
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    db.delete(note)
+    db.commit()
+
+    return {"message": "Note deleted successfully"}
+
+
+# GENERATE (Protected)
 @app.post("/generate")
 async def generate_text(
     request: GenerateRequest,
@@ -193,8 +220,6 @@ async def generate_text(
         raise HTTPException(status_code=503, detail="AI Client not initialized.")
 
     try:
-        print(f"📡 Sending request to Groq: {request.prompt[:50]}...")
-
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
@@ -211,18 +236,14 @@ async def generate_text(
         return {"response": completion.choices[0].message.content}
 
     except Exception as e:
-        print(f"❌ Groq API Error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Groq API Error: {str(e)}")
 
-# -------------------------
+
 # Static Files
-# -------------------------
 app.mount("/", StaticFiles(directory=".", html=True), name="static")
 
 
-# -------------------------
 # Run Server
-# -------------------------
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
