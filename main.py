@@ -169,19 +169,27 @@ def create_note(
 
 
 # Get User Notes
+from fastapi import Query  # add at top if not already imported
+
+
 @app.get("/notes", response_model=list[schemas.NoteResponse])
 def get_notes(
+    saved: bool | None = Query(default=None),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    notes = (
+    query = (
         db.query(models.Note)
         .filter(models.Note.owner_id == current_user.id)
-        .order_by(models.Note.created_at.desc())
-        .all()
     )
 
+    if saved is True:
+        query = query.filter(models.Note.is_bookmarked == True)
+
+    notes = query.order_by(models.Note.created_at.desc()).all()
+
     return notes
+
 
 
 # Delete Note
@@ -208,11 +216,38 @@ def delete_note(
 
     return {"message": "Note deleted successfully"}
 
+# Toggle Bookmark
+@app.patch("/notes/{note_id}/bookmark")
+def toggle_bookmark(
+    note_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    note = (
+        db.query(models.Note)
+        .filter(
+            models.Note.id == note_id,
+            models.Note.owner_id == current_user.id,
+        )
+        .first()
+    )
+
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    note.is_bookmarked = not note.is_bookmarked
+
+    db.commit()
+    db.refresh(note)
+
+    return note
+
 
 # GENERATE (Protected)
 @app.post("/generate")
 async def generate_text(
     request: GenerateRequest,
+    db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
     client = model_context.get("client")
@@ -233,10 +268,27 @@ async def generate_text(
             max_tokens=request.max_tokens,
         )
 
-        return {"response": completion.choices[0].message.content}
+        generated_text = completion.choices[0].message.content
+
+        new_note = models.Note(
+            title=request.prompt[:50] if request.prompt else "Untitled",
+            content=generated_text,
+            owner_id=current_user.id,
+            is_bookmarked=False,
+        )
+
+        db.add(new_note)
+        db.commit()
+        db.refresh(new_note)
+
+        return {
+            "response": generated_text,
+            "note_id": new_note.id,
+        }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Groq API Error: {str(e)}")
+
 
 
 # Static Files

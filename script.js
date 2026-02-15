@@ -125,10 +125,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const response = await apiFetch("http://127.0.0.1:8000/generate", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt: "ping" })
+            const response = await apiFetch("http://127.0.0.1:8000/me", {
+                method: "GET"
             });
 
             if (!response.ok) {
@@ -141,6 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch {
             forceLogout();
         }
+
     }
 
 

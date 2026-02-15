@@ -25,6 +25,7 @@ class Note(Base):
     __tablename__ = "notes"
 
     id = Column(Integer, primary_key=True, index=True)
+
     title = Column(String, nullable=True)
     content = Column(Text, nullable=False)
 
@@ -38,5 +39,7 @@ class Note(Base):
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False
     )
+
+    is_bookmarked = Column(Boolean, nullable=False, default=False)
 
     owner = relationship("User", back_populates="notes")
