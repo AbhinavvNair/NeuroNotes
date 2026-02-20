@@ -1334,4 +1334,14 @@ pre code {
 .list-item:hover .hover-action {
     opacity: 1;
     transform: scale(1);
+
+
+}
+
+#authTitle {
+    color: #ffffff !important;
+}
+
+#authSubtitle {
+    color: #cbd5e1 !important;
 }
