@@ -1191,6 +1191,48 @@ pre code {
     box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.15);
 }
 
+.setting-group .input-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 0 15px;
+    transition: all 0.3s ease;
+    margin-bottom: 5px;
+}
+
+.setting-group .input-group i {
+    color: var(--primary);
+    font-size: 0.9rem;
+    margin-right: 12px;
+    width: 15px;
+    text-align: center;
+}
+
+.setting-group .input-group input {
+    width: 100%;
+    padding: 12px 12px 12px 40px;
+    background: transparent;
+    border: none;
+    color: var(--text-main);
+    font-family: inherit;
+    font-size: 0.95rem;
+    outline: none;
+}
+
+/* Glow and Border effect on Focus */
+.setting-group .input-group:focus-within {
+    border-color: var(--primary);
+    background: rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.15);
+}
+
+.setting-group .input-group:focus-within i {
+    color: var(--primary);
+}
+
 .settings-footer {
     padding: 20px 25px;
     border-top: 1px solid var(--border);
@@ -1282,6 +1324,7 @@ pre code {
 .list-item {
     position: relative;
 }
+
 .hover-action {
     opacity: 0;
     transform: scale(0.9);
@@ -1291,4 +1334,26 @@ pre code {
 .list-item:hover .hover-action {
     opacity: 1;
     transform: scale(1);
+
+
+}
+
+/* --- CLEAN STATIC TITLE + HOVER NEON GLOW --- */
+#authTitle {
+    color: #ffffff !important;
+    font-size: 2.3rem !important;
+    font-weight: 800 !important;
+    letter-spacing: -1px;
+    transition: text-shadow 0.3s ease, transform 0.3s ease;
+    text-shadow: none; /* No glow by default */
+}
+
+/* Glow ONLY when hovered */
+#authTitle:hover {
+    text-shadow:
+        0 0 10px rgba(129, 140, 248, 0.8),
+        0 0 20px rgba(129, 140, 248, 0.6),
+        0 0 40px rgba(129, 140, 248, 0.4),
+        0 0 60px rgba(129, 140, 248, 0.3);
+    transform: scale(1.03);
 }
