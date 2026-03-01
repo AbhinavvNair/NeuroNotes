@@ -103,6 +103,12 @@
                     <div id="savedDecksList" class="nav-list" style="display: none;"></div>
                 </div>
 
+                <div class="nav-section">
+                    <button class="nav-btn" id="quizArenaToggle">
+                        <i class="fa-solid fa-trophy"></i> Quiz Arena
+                    </button>
+                </div>
+
                 <button class="nav-btn clear-history-btn" id="clearHistoryBtn">
                     <i class="fa-solid fa-trash-can"></i> Clear History
                 </button>
@@ -518,6 +524,7 @@
             </div>
         </div>
     </div>
+    
     <div id="fcSavedScreen" class="fc-fullscreen hidden">
         <div class="fc-review-wrap">
             <div class="fc-review-header">
@@ -530,6 +537,49 @@
             <div id="fcSavedList"></div>
         </div>
     </div>
+
+    <div id="quizScreen" class="fc-fullscreen hidden">
+        <div class="fc-review-wrap">
+            
+            <div class="fc-review-header">
+                <div>
+                    <div class="fc-review-title">Quiz Arena 🏆</div>
+                    <div class="fc-review-meta" id="quizMeta">Test your knowledge before the real exam</div>
+                </div>
+                <button class="fc-btn fc-btn-ghost" id="closeQuizBtn">✕ Close</button>
+            </div>
+
+            <div id="quizSetup" class="fc-card" style="margin: 0 auto; max-width: 600px; padding: 40px; display: flex; flex-direction: column; gap: 20px;">
+                <h3 style="text-align: center; margin-bottom: 10px;">Configure Exam</h3>
+                <div class="fc-form-group">
+                    <label class="fc-label">What topic are we testing?</label>
+                    <input class="fc-input" id="quizTopic" type="text" placeholder="e.g., Computer Networks, World War 2...">
+                </div>
+                <button class="fc-btn fc-btn-primary" id="generateQuizBtn" style="justify-content: center; padding: 12px; font-size: 1rem;">
+                    Generate Exam →
+                </button>
+            </div>
+
+            <div id="quizActive" class="hidden" style="max-width: 800px; margin: 0 auto; width: 100%;">
+                <div id="quizQuestionsContainer" style="display: flex; flex-direction: column; gap: 30px;">
+                    </div>
+                <button id="submitQuizBtn" class="fc-btn fc-btn-primary" style="margin-top: 40px; width: 100%; justify-content: center; padding: 15px; font-size: 1.1rem;">
+                    Submit for Grading
+                </button>
+            </div>
+
+            <div id="quizResults" class="hidden" style="max-width: 800px; margin: 0 auto; width: 100%;">
+                <div class="fc-card" style="text-align: center; margin-bottom: 30px; padding: 30px;">
+                    <div style="font-size: 1rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 2px;">Final Score</div>
+                    <div id="quizScoreDisplay" style="font-size: 4rem; font-weight: 800; color: var(--primary);">0%</div>
+                </div>
+                <div id="quizFeedbackContainer" style="display: flex; flex-direction: column; gap: 20px;">
+                    </div>
+            </div>
+
+        </div>
+    </div>
+
     <div id="toast" class="toast">Action Complete</div>
     <script src="script.js"></script>
 </body>
