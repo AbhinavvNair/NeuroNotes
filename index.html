@@ -538,45 +538,94 @@
         </div>
     </div>
 
-    <div id="quizScreen" class="fc-fullscreen hidden">
-        <div class="fc-review-wrap">
-            
-            <div class="fc-review-header">
-                <div>
-                    <div class="fc-review-title">Quiz Arena 🏆</div>
-                    <div class="fc-review-meta" id="quizMeta">Test your knowledge before the real exam</div>
-                </div>
-                <button class="fc-btn fc-btn-ghost" id="closeQuizBtn">✕ Close</button>
+   <div id="quizScreen" class="fc-fullscreen hidden" style="background: var(--bg-app); z-index: 9000;">
+        <div class="fc-review-header" style="position: absolute; top: 0; left: 0; right: 0; padding: 20px 32px; z-index: 10;">
+            <div>
+                <div class="fc-review-title">Quiz Arena 🏆</div>
+                <div class="fc-review-meta" id="quizMeta">Test your limits</div>
             </div>
+            <button class="fc-btn fc-btn-ghost" id="closeQuizBtn">✕ Leave Arena</button>
+        </div>
 
-            <div id="quizSetup" class="fc-card" style="margin: 0 auto; max-width: 600px; padding: 40px; display: flex; flex-direction: column; gap: 20px;">
-                <h3 style="text-align: center; margin-bottom: 10px;">Configure Exam</h3>
-                <div class="fc-form-group">
-                    <label class="fc-label">What topic are we testing?</label>
-                    <input class="fc-input" id="quizTopic" type="text" placeholder="e.g., Computer Networks, World War 2...">
+        <div class="quiz-setup-container" id="quizSetupWrap">
+            <div class="quiz-ambient blob-purple"></div>
+            <div class="quiz-ambient blob-blue" style="animation-delay: -3s;"></div>
+
+            <div id="quizSetup" class="quiz-setup-card glass-panel">
+                <div class="quiz-hero-icon"><i class="fa-solid fa-khanda"></i></div>
+                <h2 class="quiz-setup-title">Configure Exam</h2>
+                <p class="quiz-setup-subtitle">Forge a custom test to challenge your knowledge.</p>
+
+                <div class="quiz-config-grid">
+                    <div class="fc-form-group" style="grid-column: span 2;">
+                        <label class="fc-label">Focus Topic</label>
+                        <input class="fc-input" id="quizTopic" type="text" placeholder="e.g., Computer Networks, Thermodynamics, or leave blank for 'My Note'">
+                    </div>
+
+                    <div class="fc-form-group">
+                        <label class="fc-label">Questions</label>
+                        <div class="fc-preset-row" id="quizCountRow">
+                            <button class="fc-preset-btn fc-selected" data-val="5">5</button>
+                            <button class="fc-preset-btn" data-val="10">10</button>
+                            <button class="fc-preset-btn" data-val="15">15</button>
+                        </div>
+                    </div>
+
+                    <div class="fc-form-group">
+                        <label class="fc-label">Difficulty</label>
+                        <div class="fc-preset-row" id="quizDiffRow">
+                            <button class="fc-preset-btn" data-val="Beginner">Noob</button>
+                            <button class="fc-preset-btn fc-selected" data-val="Intermediate">Pro</button>
+                            <button class="fc-preset-btn" data-val="Advanced">God</button>
+                        </div>
+                    </div>
+
+                    <div class="fc-form-group" style="grid-column: span 2;">
+                        <label class="fc-label">Time Limit</label>
+                        <div class="fc-preset-row" id="quizTimeRow">
+                            <button class="fc-preset-btn fc-selected" data-val="0">Untimed</button>
+                            <button class="fc-preset-btn" data-val="3">3 Min</button>
+                            <button class="fc-preset-btn" data-val="5">5 Min</button>
+                            <button class="fc-preset-btn" data-val="10">10 Min</button>
+                        </div>
+                    </div>
                 </div>
-                <button class="fc-btn fc-btn-primary" id="generateQuizBtn" style="justify-content: center; padding: 12px; font-size: 1rem;">
-                    Generate Exam →
+
+                <button class="login-btn fluid-gradient" id="generateQuizBtn" style="width: 100%; margin-top: 35px; padding: 18px; font-size: 1.15rem;">
+                    Enter The Arena <i class="fa-solid fa-arrow-right" style="margin-left: 8px;"></i>
                 </button>
             </div>
+        </div>
 
-            <div id="quizActive" class="hidden" style="max-width: 800px; margin: 0 auto; width: 100%;">
+        <div class="fc-review-wrap" id="quizExamWrap" style="padding-top: 100px; display: none;">
+            <div id="quizActive" style="max-width: 800px; margin: 0 auto; width: 100%;">
+                
+                <div class="quiz-active-header">
+                    <div style="font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;" id="quizActiveTopic">Topic Name</div>
+                    <div class="quiz-timer safe" id="quizTimerDisplay">
+                        <i class="fa-regular fa-clock"></i> <span id="quizTimeText">--:--</span>
+                    </div>
+                </div>
+
                 <div id="quizQuestionsContainer" style="display: flex; flex-direction: column; gap: 30px;">
                     </div>
-                <button id="submitQuizBtn" class="fc-btn fc-btn-primary" style="margin-top: 40px; width: 100%; justify-content: center; padding: 15px; font-size: 1.1rem;">
+                <button id="submitQuizBtn" class="fc-btn fc-btn-primary" style="margin-top: 40px; width: 100%; justify-content: center; padding: 15px; font-size: 1.1rem; box-shadow: 0 10px 20px rgba(129, 140, 248, 0.3);">
                     Submit for Grading
                 </button>
             </div>
 
             <div id="quizResults" class="hidden" style="max-width: 800px; margin: 0 auto; width: 100%;">
-                <div class="fc-card" style="text-align: center; margin-bottom: 30px; padding: 30px;">
+                <div class="fc-card" style="text-align: center; margin-bottom: 30px; padding: 40px; border: 2px solid var(--primary); box-shadow: 0 0 40px rgba(129, 140, 248, 0.2);">
                     <div style="font-size: 1rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 2px;">Final Score</div>
-                    <div id="quizScoreDisplay" style="font-size: 4rem; font-weight: 800; color: var(--primary);">0%</div>
+                    <div id="quizScoreDisplay" style="font-size: 5rem; font-weight: 800; color: var(--primary); text-shadow: 0 0 20px rgba(129, 140, 248, 0.5);">0%</div>
+                    <div id="quizTimeTakenDisplay" style="color: var(--text-muted); font-size: 0.9rem; margin-top: 10px;"></div>
                 </div>
                 <div id="quizFeedbackContainer" style="display: flex; flex-direction: column; gap: 20px;">
                     </div>
+                <button id="playAgainQuizBtn" class="fc-btn fc-btn-ghost" style="margin-top: 30px; width: 100%; justify-content: center; padding: 15px;">
+                    Return to Lobby
+                </button>
             </div>
-
         </div>
     </div>
 

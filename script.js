@@ -1172,46 +1172,117 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // QUIZ ARENA (EXAM SIMULATOR)
     // ==========================================
+    // ==========================================
+    // QUIZ ARENA (EXAM SIMULATOR) - MESMERISING EDITION
+    // ==========================================
     (function () {
         const el = id => document.getElementById(id);
         let currentQuizData = [];
         let userAnswers = [];
+        let quizTimerInterval = null;
+        let timeRemaining = 0; // in seconds
+        let totalTime = 0;
 
-        // Simple helper to switch between the 3 Quiz phases
+        let quizConfig = { count: 5, difficulty: 'Intermediate', timeLimit: 0 };
+
+        // Handle Configuration Selections
+        const setupRowSelection = (rowId, configKey, isInt = false) => {
+            document.querySelectorAll(`#${rowId} .fc-preset-btn`).forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll(`#${rowId} .fc-preset-btn`).forEach(b => b.classList.remove('fc-selected'));
+                    btn.classList.add('fc-selected');
+                    quizConfig[configKey] = isInt ? parseInt(btn.dataset.val) : btn.dataset.val;
+                });
+            });
+        };
+        setupRowSelection('quizCountRow', 'count', true);
+        setupRowSelection('quizDiffRow', 'difficulty', false);
+        setupRowSelection('quizTimeRow', 'timeLimit', true);
+
+        // UI Routing
         function showQuizPhase(phaseId) {
-            ['quizSetup', 'quizActive', 'quizResults'].forEach(id => el(id).classList.add('hidden'));
-            el(phaseId).classList.remove('hidden');
+            ['quizSetupWrap', 'quizExamWrap'].forEach(id => el(id).style.display = 'none');
+            ['quizActive', 'quizResults'].forEach(id => el(id).classList.add('hidden'));
+
+            if (phaseId === 'quizSetup') {
+                el('quizSetupWrap').style.display = 'flex';
+            } else if (phaseId === 'quizActive') {
+                el('quizExamWrap').style.display = 'block';
+                el('quizActive').classList.remove('hidden');
+            } else if (phaseId === 'quizResults') {
+                el('quizExamWrap').style.display = 'block';
+                el('quizResults').classList.remove('hidden');
+            }
         }
 
-        // 1. Open the Arena
+        // Open Arena
         el('quizArenaToggle')?.addEventListener('click', () => {
-            // Automatically suggest testing on the current note if there is one
-            el('quizTopic').value = userInput.value.trim() ? "My Current Note" : "";
+            el('quizTopic').value = ""; // Default empty encourages "My Note"
             showQuizPhase('quizSetup');
             el('quizScreen').classList.remove('hidden');
         });
 
-        // Close the Arena
+        // Close Arena
         el('closeQuizBtn')?.addEventListener('click', () => {
+            clearInterval(quizTimerInterval);
             el('quizScreen').classList.add('hidden');
         });
+        el('playAgainQuizBtn')?.addEventListener('click', () => {
+            showQuizPhase('quizSetup');
+        });
 
-        // 2. Generate the Exam
+        // Timer Engine
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function startTimer() {
+            clearInterval(quizTimerInterval);
+            const timerEl = el('quizTimerDisplay');
+            const timeText = el('quizTimeText');
+            
+            if (quizConfig.timeLimit === 0) {
+                timeText.textContent = "∞ Untimed";
+                timerEl.className = 'quiz-timer safe';
+                return;
+            }
+
+            totalTime = quizConfig.timeLimit * 60;
+            timeRemaining = totalTime;
+            timeText.textContent = formatTime(timeRemaining);
+            timerEl.className = 'quiz-timer safe';
+
+            quizTimerInterval = setInterval(() => {
+                timeRemaining--;
+                timeText.textContent = formatTime(timeRemaining);
+
+                if (timeRemaining <= 60 && timeRemaining > 15) timerEl.className = 'quiz-timer warn';
+                else if (timeRemaining <= 15) timerEl.className = 'quiz-timer danger';
+
+                if (timeRemaining <= 0) {
+                    clearInterval(quizTimerInterval);
+                    showToast("⏳ Time's up! Auto-submitting...");
+                    gradeQuiz();
+                }
+            }, 1000);
+        }
+
+        // Generate Exam
         el('generateQuizBtn')?.addEventListener('click', async () => {
             const topicInput = el('quizTopic').value.trim();
-            const topic = topicInput || (userInput.value ? "the content I am currently studying" : "General Knowledge");
+            const topic = topicInput || (userInput.value ? "the exact content provided in the context" : "General Knowledge");
             
             const btn = el('generateQuizBtn');
             const origText = btn.innerHTML;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating Exam...';
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Forging Exam...';
             btn.disabled = true;
 
-            // Strict prompt asking for pure JSON structure
-            const prompt = `Generate a 5-question multiple-choice exam about "${topic}". Return ONLY a valid JSON array. Each object must have: "question" (string), "options" (array of 4 strings), "correctIndex" (integer 0-3), and "explanation" (short string explaining the answer). Do not include any markdown formatting outside the JSON array.`;
+            const prompt = `Generate a ${quizConfig.count}-question multiple-choice exam about "${topic}". Difficulty should be ${quizConfig.difficulty}. Return ONLY a valid JSON array. Each object must have: "question" (string), "options" (array of exactly 4 strings), "correctIndex" (integer 0-3), and "explanation" (short string). No markdown, no conversational text.`;
 
-            // If the user said "My Current Note", we feed the AI the actual text from the input box
-            const contextText = (topicInput === "My Current Note" || !topicInput) && userInput.value 
-                ? `\n\nContext Note:\n${userInput.value.substring(0, 3000)}` 
+            const contextText = (!topicInput || topicInput.toLowerCase() === "my notes") && userInput.value 
+                ? `\n\nContext Note to Base Exam On:\n${userInput.value.substring(0, 3000)}` 
                 : "";
 
             try {
@@ -1220,23 +1291,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ 
                         prompt: prompt + contextText,
-                        temperature: 0.2 // Low temperature so the AI doesn't hallucinate bad JSON
+                        temperature: 0.2 
                     })
                 });
                 
                 if (!res.ok) throw new Error("Backend error");
                 const data = await res.json();
                 
-                // Clean up any weird markdown the AI might wrap the JSON in
                 const raw = data.response.replace(/```json|```/g, '').trim();
                 currentQuizData = JSON.parse(raw);
                 userAnswers = new Array(currentQuizData.length).fill(null);
 
+                el('quizActiveTopic').textContent = topicInput || "Workspace Notes";
                 renderQuiz();
                 showQuizPhase('quizActive');
+                startTimer();
 
             } catch (err) {
-                showToast("Failed to generate exam. Try again.");
+                showToast("Generation failed. Please try again.");
                 console.error("Quiz Gen Error:", err);
             } finally {
                 btn.innerHTML = origText;
@@ -1244,7 +1316,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // 3. Render the Questions
+        // Render Questions
         function renderQuiz() {
             const container = el('quizQuestionsContainer');
             container.innerHTML = '';
@@ -1263,12 +1335,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 q.options.forEach((optText, optIndex) => {
                     const optBtn = document.createElement('div');
                     optBtn.className = 'quiz-option';
-                    optBtn.textContent = optText;
+                    
+                    // Add letters A, B, C, D
+                    const letter = String.fromCharCode(65 + optIndex);
+                    optBtn.innerHTML = `<strong style="color:var(--text-muted); width: 20px;">${letter}.</strong> ${optText}`;
                     
                     optBtn.addEventListener('click', () => {
                         Array.from(grid.children).forEach(c => c.classList.remove('selected'));
                         optBtn.classList.add('selected');
-                        userAnswers[qIndex] = optIndex; // Save the user's choice
+                        userAnswers[qIndex] = optIndex;
                     });
                     
                     grid.appendChild(optBtn);
@@ -1280,11 +1355,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // 4. Submit & Grade
-        el('submitQuizBtn')?.addEventListener('click', () => {
-            if (userAnswers.includes(null)) {
-                return showToast("Please answer all questions before submitting!");
-            }
+        // Grade Logic
+        function gradeQuiz() {
+            clearInterval(quizTimerInterval); // Stop the clock
 
             let score = 0;
             const feedbackContainer = el('quizFeedbackContainer');
@@ -1297,28 +1370,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 const feedbackCard = document.createElement('div');
                 feedbackCard.className = `quiz-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
                 
+                const userAnswerText = userAnswers[i] !== null ? q.options[userAnswers[i]] : "<span style='color:#ef4444'>Skipped (Out of Time)</span>";
+
                 feedbackCard.innerHTML = `
                     <strong>${i + 1}. ${q.question}</strong><br>
-                    <span style="color: var(--text-muted); font-size: 0.85rem;">Your answer: ${q.options[userAnswers[i]]}</span><br>
-                    <div style="margin-top: 8px;">
-                        ${isCorrect ? '✅ Correct!' : `❌ Incorrect. The right answer was: <strong>${q.options[q.correctIndex]}</strong>`}
+                    <span style="color: var(--text-muted); font-size: 0.85rem; display: block; margin-top: 5px;">Your answer: ${userAnswerText}</span>
+                    <div style="margin-top: 10px;">
+                        ${isCorrect ? '<span style="color:#22c55e"><i class="fa-solid fa-check"></i> Correct!</span>' : `<span style="color:#ef4444"><i class="fa-solid fa-xmark"></i> Incorrect.</span> The right answer was: <strong>${q.options[q.correctIndex]}</strong>`}
                     </div>
-                    <div style="margin-top: 8px; font-size: 0.85rem; opacity: 0.9;">
+                    <div style="margin-top: 10px; font-size: 0.9rem; opacity: 0.9; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px;">
                         <em>💡 ${q.explanation}</em>
                     </div>
                 `;
                 feedbackContainer.appendChild(feedbackCard);
             });
 
-            // Calculate percentage and color code it
             const percentage = Math.round((score / currentQuizData.length) * 100);
             el('quizScoreDisplay').textContent = `${percentage}%`;
             
-            if (percentage >= 80) el('quizScoreDisplay').style.color = '#22c55e'; // Green for A/B
-            else if (percentage >= 50) el('quizScoreDisplay').style.color = '#f59e0b'; // Yellow for C/D
-            else el('quizScoreDisplay').style.color = '#ef4444'; // Red for F
+            if (percentage >= 80) el('quizScoreDisplay').style.color = '#22c55e';
+            else if (percentage >= 50) el('quizScoreDisplay').style.color = '#f59e0b';
+            else el('quizScoreDisplay').style.color = '#ef4444';
+
+            if (quizConfig.timeLimit > 0) {
+                const timeTaken = totalTime - timeRemaining;
+                el('quizTimeTakenDisplay').textContent = `Time taken: ${formatTime(timeTaken)}`;
+            } else {
+                el('quizTimeTakenDisplay').textContent = `Untimed session`;
+            }
 
             showQuizPhase('quizResults');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        el('submitQuizBtn')?.addEventListener('click', () => {
+            if (userAnswers.includes(null) && !confirm("You have unanswered questions. Are you sure you want to submit?")) return;
+            gradeQuiz();
         });
     })();
 });
