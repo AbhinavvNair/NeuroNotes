@@ -1168,4 +1168,157 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
     })();
+
+    // ==========================================
+    // QUIZ ARENA (EXAM SIMULATOR)
+    // ==========================================
+    (function () {
+        const el = id => document.getElementById(id);
+        let currentQuizData = [];
+        let userAnswers = [];
+
+        // Simple helper to switch between the 3 Quiz phases
+        function showQuizPhase(phaseId) {
+            ['quizSetup', 'quizActive', 'quizResults'].forEach(id => el(id).classList.add('hidden'));
+            el(phaseId).classList.remove('hidden');
+        }
+
+        // 1. Open the Arena
+        el('quizArenaToggle')?.addEventListener('click', () => {
+            // Automatically suggest testing on the current note if there is one
+            el('quizTopic').value = userInput.value.trim() ? "My Current Note" : "";
+            showQuizPhase('quizSetup');
+            el('quizScreen').classList.remove('hidden');
+        });
+
+        // Close the Arena
+        el('closeQuizBtn')?.addEventListener('click', () => {
+            el('quizScreen').classList.add('hidden');
+        });
+
+        // 2. Generate the Exam
+        el('generateQuizBtn')?.addEventListener('click', async () => {
+            const topicInput = el('quizTopic').value.trim();
+            const topic = topicInput || (userInput.value ? "the content I am currently studying" : "General Knowledge");
+            
+            const btn = el('generateQuizBtn');
+            const origText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating Exam...';
+            btn.disabled = true;
+
+            // Strict prompt asking for pure JSON structure
+            const prompt = `Generate a 5-question multiple-choice exam about "${topic}". Return ONLY a valid JSON array. Each object must have: "question" (string), "options" (array of 4 strings), "correctIndex" (integer 0-3), and "explanation" (short string explaining the answer). Do not include any markdown formatting outside the JSON array.`;
+
+            // If the user said "My Current Note", we feed the AI the actual text from the input box
+            const contextText = (topicInput === "My Current Note" || !topicInput) && userInput.value 
+                ? `\n\nContext Note:\n${userInput.value.substring(0, 3000)}` 
+                : "";
+
+            try {
+                const res = await apiFetch(`${API_BASE}/generate`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ 
+                        prompt: prompt + contextText,
+                        temperature: 0.2 // Low temperature so the AI doesn't hallucinate bad JSON
+                    })
+                });
+                
+                if (!res.ok) throw new Error("Backend error");
+                const data = await res.json();
+                
+                // Clean up any weird markdown the AI might wrap the JSON in
+                const raw = data.response.replace(/```json|```/g, '').trim();
+                currentQuizData = JSON.parse(raw);
+                userAnswers = new Array(currentQuizData.length).fill(null);
+
+                renderQuiz();
+                showQuizPhase('quizActive');
+
+            } catch (err) {
+                showToast("Failed to generate exam. Try again.");
+                console.error("Quiz Gen Error:", err);
+            } finally {
+                btn.innerHTML = origText;
+                btn.disabled = false;
+            }
+        });
+
+        // 3. Render the Questions
+        function renderQuiz() {
+            const container = el('quizQuestionsContainer');
+            container.innerHTML = '';
+            
+            currentQuizData.forEach((q, qIndex) => {
+                const card = document.createElement('div');
+                card.className = 'quiz-question-card';
+                
+                const qText = document.createElement('div');
+                qText.className = 'quiz-q-text';
+                qText.textContent = `${qIndex + 1}. ${q.question}`;
+                
+                const grid = document.createElement('div');
+                grid.className = 'quiz-mcq-grid';
+                
+                q.options.forEach((optText, optIndex) => {
+                    const optBtn = document.createElement('div');
+                    optBtn.className = 'quiz-option';
+                    optBtn.textContent = optText;
+                    
+                    optBtn.addEventListener('click', () => {
+                        Array.from(grid.children).forEach(c => c.classList.remove('selected'));
+                        optBtn.classList.add('selected');
+                        userAnswers[qIndex] = optIndex; // Save the user's choice
+                    });
+                    
+                    grid.appendChild(optBtn);
+                });
+                
+                card.appendChild(qText);
+                card.appendChild(grid);
+                container.appendChild(card);
+            });
+        }
+
+        // 4. Submit & Grade
+        el('submitQuizBtn')?.addEventListener('click', () => {
+            if (userAnswers.includes(null)) {
+                return showToast("Please answer all questions before submitting!");
+            }
+
+            let score = 0;
+            const feedbackContainer = el('quizFeedbackContainer');
+            feedbackContainer.innerHTML = '';
+
+            currentQuizData.forEach((q, i) => {
+                const isCorrect = userAnswers[i] === q.correctIndex;
+                if (isCorrect) score++;
+
+                const feedbackCard = document.createElement('div');
+                feedbackCard.className = `quiz-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
+                
+                feedbackCard.innerHTML = `
+                    <strong>${i + 1}. ${q.question}</strong><br>
+                    <span style="color: var(--text-muted); font-size: 0.85rem;">Your answer: ${q.options[userAnswers[i]]}</span><br>
+                    <div style="margin-top: 8px;">
+                        ${isCorrect ? '✅ Correct!' : `❌ Incorrect. The right answer was: <strong>${q.options[q.correctIndex]}</strong>`}
+                    </div>
+                    <div style="margin-top: 8px; font-size: 0.85rem; opacity: 0.9;">
+                        <em>💡 ${q.explanation}</em>
+                    </div>
+                `;
+                feedbackContainer.appendChild(feedbackCard);
+            });
+
+            // Calculate percentage and color code it
+            const percentage = Math.round((score / currentQuizData.length) * 100);
+            el('quizScoreDisplay').textContent = `${percentage}%`;
+            
+            if (percentage >= 80) el('quizScoreDisplay').style.color = '#22c55e'; // Green for A/B
+            else if (percentage >= 50) el('quizScoreDisplay').style.color = '#f59e0b'; // Yellow for C/D
+            else el('quizScoreDisplay').style.color = '#ef4444'; // Red for F
+
+            showQuizPhase('quizResults');
+        });
+    })();
 });
