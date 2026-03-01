@@ -93,6 +93,45 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+
+    // === LOGOUT CONFIRMATION MODAL ===
+    const logoutOverlay = $('logoutConfirmOverlay');
+    const cancelLogoutBtn = $('cancelLogoutBtn');
+    const confirmLogoutBtn = $('confirmLogoutBtn');
+    const logoutBtn = $('logoutBtn');
+
+    // prevent dropdown from closing
+    logoutBtn.addEventListener('click', e => e.stopPropagation());
+
+    // open modal
+    logoutBtn.addEventListener('click', () => {
+        logoutOverlay.classList.add('show');
+        document.activeElement.blur(); 
+    });
+
+    // close modal (cancel)
+    cancelLogoutBtn.addEventListener('click', () => {
+        logoutOverlay.classList.remove('show');
+    });
+
+    // close when clicking outside
+    logoutOverlay.addEventListener('click', (e) => {
+        if (e.target === logoutOverlay) logoutOverlay.classList.remove('show');
+    });
+
+    // close on ESC
+    document.addEventListener('keydown', (e) => {
+        if (e.key === "Escape") logoutOverlay.classList.remove('show');
+    });
+
+    // confirm logout
+    confirmLogoutBtn.addEventListener('click', () => {
+        localStorage.removeItem("access_token");
+        sessionStorage.removeItem("access_token");
+        location.reload();
+    });
+
+
     // --- API & AUTH ---
     const forceLogout = (msg = "Session expired. Please login again.") => {
         localStorage.removeItem("access_token"); sessionStorage.removeItem("access_token");
@@ -141,14 +180,14 @@ document.addEventListener('DOMContentLoaded', () => {
         notes.forEach(note => {
             const wrap = document.createElement('div'); wrap.className = "list-item"; wrap.style.display = "flex"; wrap.style.justifyContent = "space-between";
             const title = document.createElement('span'); title.style.cursor = "pointer"; title.textContent = note.title || note.content.substring(0, 25);
-            title.onclick = () => { 
-                userInput.value = note.title || ""; 
-                aiOutput.innerHTML = marked.parse(note.content); 
-                aiOutput.classList.remove("empty-state"); 
-                currentRawResponse = note.content; 
-                lastGeneratedNoteId = note.id; 
-                enableLiveCode(); 
-                renderMermaidDiagrams(); 
+            title.onclick = () => {
+                userInput.value = note.title || "";
+                aiOutput.innerHTML = marked.parse(note.content);
+                aiOutput.classList.remove("empty-state");
+                currentRawResponse = note.content;
+                lastGeneratedNoteId = note.id;
+                enableLiveCode();
+                renderMermaidDiagrams();
             };
             const btn = document.createElement('button'); btn.className = isSaved ? "hover-action" : "delete-btn hover-action"; btn.style = `background:transparent; border:none; cursor:pointer; color: ${isSaved ? '#818cf8' : '#ef4444'}`;
             btn.innerHTML = isSaved ? `<i class="fa-solid fa-bookmark"></i>` : `<i class="fa-solid fa-xmark"></i>`;
@@ -216,7 +255,6 @@ document.addEventListener('DOMContentLoaded', () => {
         $('toggleAuthMode').innerText = isReg ? "Already have an account? Login" : "Don't have an account? Register";
     });
 
-    $('logoutBtn')?.addEventListener('click', () => forceLogout("Logged out"));
     const userSection = $('userSection');
     $('userToggleBtn')?.addEventListener('click', (e) => { e.stopPropagation(); userSection?.classList.toggle('open'); });
     document.addEventListener('click', () => userSection?.classList.remove('open'));
@@ -235,7 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const r = await fetch(`${API_BASE}/login`, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: fd });
             if (!r.ok) throw new Error((await r.json()).detail || "Invalid credentials");
             const loginData = await r.json();
-            ($('rememberMe')?.checked ? localStorage : sessionStorage).setItem("access_token", loginData.access_token);
+            sessionStorage.setItem("access_token", loginData.access_token);
             updateUserUI(email);
             $('loginScreen').style.display = 'none'; $('appContainer').classList.remove('hidden'); await loadNotes();
         } catch (e) { showLoginError(e.message); }
@@ -297,9 +335,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // AUTO-MIND MAPPER (MERMAID.JS)
     // ==========================================
-   // ==========================================
-    // AUTO-MIND MAPPER (MERMAID.JS) - BULLETPROOF
-    // ==========================================
     async function renderMermaidDiagrams() {
         // Look for all code blocks in the output
         const blocks = aiOutput.querySelectorAll('pre code');
@@ -307,13 +342,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         blocks.forEach(block => {
             const text = block.textContent.trim();
-            
+
             // Aggressively catch mermaid code even if the AI forgot the specific markdown tag
-            if (block.className.includes('language-mermaid') || 
-                text.startsWith('graph ') || 
-                text.startsWith('flowchart ') || 
+            if (block.className.includes('language-mermaid') ||
+                text.startsWith('graph ') ||
+                text.startsWith('flowchart ') ||
                 text.startsWith('mindmap')) {
-                
+
                 foundDiagram = true;
                 const pre = block.parentElement;
 
@@ -329,7 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const mermaidDiv = document.createElement('div');
                 mermaidDiv.className = 'mermaid';
-                
+
                 // Clean up any weird markdown formatting the AI might have hallucinated
                 mermaidDiv.textContent = text.replace(/```mermaid/g, '').replace(/```/g, '').trim();
 
@@ -371,8 +406,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await apiFetch(`${API_BASE}/generate`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 
-                    system_prompt: systemPrompt, 
+                body: JSON.stringify({
+                    system_prompt: systemPrompt,
                     prompt: currentRawResponse.substring(0, 3000),
                     temperature: 0.1 // Strict temperature to prevent AI hallucinations
                 })
@@ -534,7 +569,7 @@ document.addEventListener('DOMContentLoaded', () => {
     $('focusBtn')?.addEventListener('click', () => { $('inputPanel').classList.add('hidden'); $('resizeHandler').classList.add('hidden'); $('outputPanel').classList.add('focus-mode'); $('workspace').classList.add('focus-active'); $('exitFocusBtn').classList.remove('hidden'); $('exitFocusBtn').classList.add('show'); });
     const exitFocus = () => { $('inputPanel').classList.remove('hidden'); $('resizeHandler').classList.remove('hidden'); $('outputPanel').classList.remove('focus-mode'); $('workspace').classList.remove('focus-active'); $('exitFocusBtn').classList.remove('show'); $('exitFocusBtn').classList.add('hidden'); };
     $('exitFocusBtn')?.addEventListener('click', exitFocus);
-    
+
     document.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
         exitFocus();
@@ -542,7 +577,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!$('cmdPalette')?.classList.contains('hidden')) { $('cmdPalette').classList.remove('show'); setTimeout(() => $('cmdPalette').classList.add('hidden'), 200); }
         if (chatSidebar.classList.contains('open')) toggleChat();
         if ($('confirmOverlay')?.classList.contains('show')) { $('confirmOverlay').classList.remove('show'); }
-        
+
         if (!$('fcExitOverlay').classList.contains('hidden')) { $('fcExitOverlay').classList.add('hidden'); return; }
         if (!$('fcModeScreen').classList.contains('hidden') || !$('fcReviewScreen').classList.contains('hidden')) { window._fcAskExit?.(); return; }
         if (!$('fcOverlay').classList.contains('hidden')) { $('fcOverlay').classList.add('hidden'); return; }
@@ -636,9 +671,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // CONTEXTUAL AI CHAT SIDEBAR
     // ==========================================
-    // ==========================================
-    // CONTEXTUAL AI CHAT SIDEBAR
-    // ==========================================
     const chatSidebar = $('chatSidebar'), chatInput = $('chatInput'), chatMessages = $('chatMessages');
 
     let currentChatContextId = null; // Keeps track of what note we are currently discussing
@@ -648,18 +680,18 @@ document.addEventListener('DOMContentLoaded', () => {
         chatMessages.innerHTML = ''; // Clear previous chat history for the new topic
         const greetingDiv = document.createElement('div');
         greetingDiv.className = 'chat-msg ai';
-        
+
         const contextText = aiOutput.innerText.includes('Ready for refinement') ? userInput.value : aiOutput.innerText;
-        
+
         if (!contextText.trim() || contextText.includes('Ready for refinement')) {
             greetingDiv.innerText = "Hi! Paste some notes first so we have something to talk about.";
         } else {
             // Grab the first real line of the note to use as the Topic Name
             let firstLine = contextText.split('\n').find(line => line.trim().length > 0 && !line.startsWith('```')) || "";
-            
+
             // Strip out markdown formatting (like #, *, -) to get the pure text
             let topic = firstLine.replace(/^[#*\-\s:]+|[#*\-\s:]+$/g, '').substring(0, 40).trim();
-            
+
             // If the first line is just a long sentence instead of a title, fallback to a smart generic greeting
             if (topic.split(' ').length > 7 || topic.length < 3) {
                 greetingDiv.innerText = "I've analyzed your document. What specific part would you like to dive into?";
@@ -909,7 +941,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         el('fcStartBtn').addEventListener('click', () => fcStartMode(fcCards));
-        
+
         el('fcSaveBtn').addEventListener('click', async () => {
             try {
                 const res = await apiFetch(`${API_BASE}/flashcards`, {
@@ -1117,7 +1149,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const fcGuardedIds = [
             'newNoteBtn', 'historyToggle', 'savedToggle', 'clearHistoryBtn',
-            'logoutBtn', 'settingsBtn', 'chatToggleBtn', 'focusBtn',
+            'settingsBtn', 'chatToggleBtn', 'focusBtn',
             'focusSoundBtn', 'pdfBtn', 'processBtn', 'userToggleBtn'
         ];
         fcGuardedIds.forEach(id => {
@@ -1171,9 +1203,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ==========================================
     // QUIZ ARENA (EXAM SIMULATOR)
-    // ==========================================
-    // ==========================================
-    // QUIZ ARENA (EXAM SIMULATOR) - MESMERISING EDITION
     // ==========================================
     (function () {
         const el = id => document.getElementById(id);
@@ -1242,7 +1271,7 @@ document.addEventListener('DOMContentLoaded', () => {
             clearInterval(quizTimerInterval);
             const timerEl = el('quizTimerDisplay');
             const timeText = el('quizTimeText');
-            
+
             if (quizConfig.timeLimit === 0) {
                 timeText.textContent = "∞ Untimed";
                 timerEl.className = 'quiz-timer safe';
@@ -1273,7 +1302,7 @@ document.addEventListener('DOMContentLoaded', () => {
         el('generateQuizBtn')?.addEventListener('click', async () => {
             const topicInput = el('quizTopic').value.trim();
             const topic = topicInput || (userInput.value ? "the exact content provided in the context" : "General Knowledge");
-            
+
             const btn = el('generateQuizBtn');
             const origText = btn.innerHTML;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Forging Exam...';
@@ -1281,23 +1310,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const prompt = `Generate a ${quizConfig.count}-question multiple-choice exam about "${topic}". Difficulty should be ${quizConfig.difficulty}. Return ONLY a valid JSON array. Each object must have: "question" (string), "options" (array of exactly 4 strings), "correctIndex" (integer 0-3), and "explanation" (short string). No markdown, no conversational text.`;
 
-            const contextText = (!topicInput || topicInput.toLowerCase() === "my notes") && userInput.value 
-                ? `\n\nContext Note to Base Exam On:\n${userInput.value.substring(0, 3000)}` 
+            const contextText = (!topicInput || topicInput.toLowerCase() === "my notes") && userInput.value
+                ? `\n\nContext Note to Base Exam On:\n${userInput.value.substring(0, 3000)}`
                 : "";
 
             try {
                 const res = await apiFetch(`${API_BASE}/generate`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         prompt: prompt + contextText,
-                        temperature: 0.2 
+                        temperature: 0.2
                     })
                 });
-                
+
                 if (!res.ok) throw new Error("Backend error");
                 const data = await res.json();
-                
+
                 const raw = data.response.replace(/```json|```/g, '').trim();
                 currentQuizData = JSON.parse(raw);
                 userAnswers = new Array(currentQuizData.length).fill(null);
@@ -1320,35 +1349,35 @@ document.addEventListener('DOMContentLoaded', () => {
         function renderQuiz() {
             const container = el('quizQuestionsContainer');
             container.innerHTML = '';
-            
+
             currentQuizData.forEach((q, qIndex) => {
                 const card = document.createElement('div');
                 card.className = 'quiz-question-card';
-                
+
                 const qText = document.createElement('div');
                 qText.className = 'quiz-q-text';
                 qText.textContent = `${qIndex + 1}. ${q.question}`;
-                
+
                 const grid = document.createElement('div');
                 grid.className = 'quiz-mcq-grid';
-                
+
                 q.options.forEach((optText, optIndex) => {
                     const optBtn = document.createElement('div');
                     optBtn.className = 'quiz-option';
-                    
+
                     // Add letters A, B, C, D
                     const letter = String.fromCharCode(65 + optIndex);
                     optBtn.innerHTML = `<strong style="color:var(--text-muted); width: 20px;">${letter}.</strong> ${optText}`;
-                    
+
                     optBtn.addEventListener('click', () => {
                         Array.from(grid.children).forEach(c => c.classList.remove('selected'));
                         optBtn.classList.add('selected');
                         userAnswers[qIndex] = optIndex;
                     });
-                    
+
                     grid.appendChild(optBtn);
                 });
-                
+
                 card.appendChild(qText);
                 card.appendChild(grid);
                 container.appendChild(card);
@@ -1369,7 +1398,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const feedbackCard = document.createElement('div');
                 feedbackCard.className = `quiz-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
-                
+
                 const userAnswerText = userAnswers[i] !== null ? q.options[userAnswers[i]] : "<span style='color:#ef4444'>Skipped (Out of Time)</span>";
 
                 feedbackCard.innerHTML = `
@@ -1387,7 +1416,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const percentage = Math.round((score / currentQuizData.length) * 100);
             el('quizScoreDisplay').textContent = `${percentage}%`;
-            
+
             if (percentage >= 80) el('quizScoreDisplay').style.color = '#22c55e';
             else if (percentage >= 50) el('quizScoreDisplay').style.color = '#f59e0b';
             else el('quizScoreDisplay').style.color = '#ef4444';
