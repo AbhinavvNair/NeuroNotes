@@ -12,37 +12,24 @@ document.addEventListener('DOMContentLoaded', () => {
     let isReg = false, isResizing = false;
 
     // ======================================================
-    // PRESET SYSTEM + AI MODE BADGE (CLEAN + CORRECT ORDER)
+    // PRESET SYSTEM + AI MODE BADGE
     // ======================================================
 
-    // Predefined AI instruction templates
     const promptPresets = {
         custom: "",
-
         child: "Explain this as if I am 10 years old. Use simple words, friendly tone, short sentences, and include small examples.",
-
         composition: "Break this topic into its complete structure and composition. List all components, subparts, relationships, and how they work together.",
-
         geo_stats: "Answer from a geographic and statistical perspective. Include data, metrics, region-wise comparisons, and relevant real-world stats.",
-
         news: "Answer like an unbiased news analyst. Provide recent developments, timelines, causes, impacts, and multiple viewpoints.",
-
         exam: "Give a crisp, exam-oriented answer. Use definitions, bullet points, formulas, and important facts without fluff.",
-
         professor: "Explain rigorously with academic depth. Include theory, formal definitions, detailed examples, and logical reasoning.",
-
         code: "Explain the code step-by-step. Fix errors, provide corrected versions, discuss logic, and mention time complexity.",
-
         math: "Solve with a detailed step-by-step explanation. Show formulas, derivations, intermediate steps, and simplified final answers.",
-
         summary: "Summarize the content into clear, concise bullet points with maximum clarity and minimal words.",
-
         compare: "Compare the items side-by-side using bullet points or tables. Highlight similarities, differences, pros/cons, and key takeaways.",
-
         creative: "Rewrite the content creatively. Use metaphors, analogies, and mental models to make it intuitive while preserving meaning."
     };
 
-    // 🎨 Badge labels (emoji + name)
     const presetLabels = {
         custom: "Custom ✏",
         child: "Explain Like I'm a Child 🧒",
@@ -58,15 +45,11 @@ document.addEventListener('DOMContentLoaded', () => {
         creative: "Creative Rewrite 🎨"
     };
 
-    // 🔖 Badge element
     const aiBadge = document.getElementById("aiModeBadge");
 
-    // 🔄 Badge update animation
     function updateAIModeBadge(preset) {
         if (!aiBadge) return;
-
         aiBadge.classList.add("hide");
-
         setTimeout(() => {
             aiBadge.textContent = presetLabels[preset] || "Custom ✏";
             aiBadge.classList.remove("hide");
@@ -74,26 +57,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 150);
     }
 
-    // DOM elements
     const presetSelect = document.getElementById("promptPresetSelect");
     const promptTextarea = document.getElementById("settingPrompt");
 
-    // Load saved preset on startup
     const savedPreset = localStorage.getItem("ai_preset") || "summary";
-    presetSelect.value = savedPreset;
+    if (presetSelect) presetSelect.value = savedPreset;
 
-    // Apply preset text
-    if (savedPreset === "custom") {
-        promptTextarea.value = localStorage.getItem("ai_custom_prompt") || "";
-    } else {
-        promptTextarea.value = promptPresets[savedPreset];
+    if (promptTextarea) {
+        if (savedPreset === "custom") {
+            promptTextarea.value = localStorage.getItem("ai_custom_prompt") || "";
+        } else {
+            promptTextarea.value = promptPresets[savedPreset];
+        }
     }
 
-    // Update badge immediately
     updateAIModeBadge(savedPreset);
 
-    // Handle preset changes
-    presetSelect.addEventListener("change", () => {
+    presetSelect?.addEventListener("change", () => {
         const preset = presetSelect.value;
         localStorage.setItem("ai_preset", preset);
 
@@ -107,12 +87,12 @@ document.addEventListener('DOMContentLoaded', () => {
         updateAIModeBadge(preset);
     });
 
-    // Save custom prompt live
-    promptTextarea.addEventListener("input", () => {
+    promptTextarea?.addEventListener("input", () => {
         if (presetSelect.value === "custom") {
             localStorage.setItem("ai_custom_prompt", promptTextarea.value.trim());
         }
     });
+
     // --- API & AUTH ---
     const forceLogout = (msg = "Session expired. Please login again.") => {
         localStorage.removeItem("access_token"); sessionStorage.removeItem("access_token");
@@ -129,8 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return res;
     };
 
-
-
     const loadNotes = async () => {
         try {
             const res = await apiFetch(`${API_BASE}/notes`);
@@ -145,7 +123,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 $('historyList').appendChild(btn);
             }
         } catch (e) {
-            // FIX 10: Show toast on notes load failure instead of silent console.error
             console.error(e);
             showToast("Could not load notes. Check your connection.");
         }
@@ -155,7 +132,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const nameEl = document.querySelector(".user-info .name");
         const avEl = document.querySelector(".user-avatar");
         if (!nameEl || !avEl) return;
-
         nameEl.textContent = email.split("@")[0];
         avEl.textContent = email.substring(0, 2).toUpperCase();
     }
@@ -165,7 +141,15 @@ document.addEventListener('DOMContentLoaded', () => {
         notes.forEach(note => {
             const wrap = document.createElement('div'); wrap.className = "list-item"; wrap.style.display = "flex"; wrap.style.justifyContent = "space-between";
             const title = document.createElement('span'); title.style.cursor = "pointer"; title.textContent = note.title || note.content.substring(0, 25);
-            title.onclick = () => { userInput.value = note.title || ""; aiOutput.innerHTML = marked.parse(note.content); aiOutput.classList.remove("empty-state"); currentRawResponse = note.content; lastGeneratedNoteId = note.id; enableLiveCode(); };
+            title.onclick = () => { 
+                userInput.value = note.title || ""; 
+                aiOutput.innerHTML = marked.parse(note.content); 
+                aiOutput.classList.remove("empty-state"); 
+                currentRawResponse = note.content; 
+                lastGeneratedNoteId = note.id; 
+                enableLiveCode(); 
+                renderMermaidDiagrams(); 
+            };
             const btn = document.createElement('button'); btn.className = isSaved ? "hover-action" : "delete-btn hover-action"; btn.style = `background:transparent; border:none; cursor:pointer; color: ${isSaved ? '#818cf8' : '#ef4444'}`;
             btn.innerHTML = isSaved ? `<i class="fa-solid fa-bookmark"></i>` : `<i class="fa-solid fa-xmark"></i>`;
             btn.onclick = async (e) => { e.stopPropagation(); isSaved ? handleBookmark(note.id, true) : showDeleteModal(note.id); };
@@ -173,7 +157,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // NEW — Render saved flashcard decks inside the sidebar
     async function renderSavedDecksSidebar() {
         const list = $('savedDecksList');
         list.innerHTML = '<div class="list-item">Loading...</div>';
@@ -182,7 +165,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await apiFetch(`${API_BASE}/flashcards`);
             if (!res.ok) throw new Error();
             const decks = await res.json();
-
             list.innerHTML = '';
 
             if (decks.length === 0) {
@@ -192,34 +174,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
             decks.forEach(deck => {
                 const row = document.createElement('div');
-                row.className = "list-item";
-                row.style.display = "flex";
-                row.style.justifyContent = "space-between";
-
+                row.className = "list-item"; row.style.display = "flex"; row.style.justifyContent = "space-between";
                 const label = document.createElement('span');
-                label.style.cursor = "pointer";
-                label.textContent = `${deck.count} · ${deck.topic}`;
+                label.style.cursor = "pointer"; label.textContent = `${deck.count} · ${deck.topic}`;
                 label.onclick = () => {
-                    // Load deck into flashcard review
                     const fcCardsLoaded = deck.cards.map((c, i) => ({ ...c, id: i }));
-
-                    // Set config for consistency
                     document.getElementById('fcSavedScreen')?.classList.add('hidden');
                     window.scrollTo(0, 0);
-
-                    // Use existing flashcard system
                     window._loadDeckFromSidebar?.(fcCardsLoaded, deck.topic, deck.difficulty);
-
-                    // Collapse sidebar
                     $('savedDecksList').style.display = 'none';
                 };
-
                 const del = document.createElement('button');
-                del.className = "hover-action";
-                del.style.background = "transparent";
-                del.style.border = "none";
-                del.style.cursor = "pointer";
-                del.style.color = "#ef4444";
+                del.className = "hover-action"; del.style.background = "transparent"; del.style.border = "none"; del.style.cursor = "pointer"; del.style.color = "#ef4444";
                 del.innerHTML = `<i class="fa-solid fa-xmark"></i>`;
                 del.onclick = async (e) => {
                     e.stopPropagation();
@@ -228,21 +194,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     showToast("Deck deleted");
                     renderSavedDecksSidebar();
                 };
-
-                row.append(label, del);
-                list.appendChild(row);
+                row.append(label, del); list.appendChild(row);
             });
-        } catch (e) {
-            list.innerHTML = '<div class="list-item">Failed to load decks</div>';
-        }
+        } catch (e) { list.innerHTML = '<div class="list-item">Failed to load decks</div>'; }
     }
+
     (async function validateSession() {
         if (!(localStorage.getItem("access_token") || sessionStorage.getItem("access_token"))) return forceLogout("Please login to continue");
         try {
             const res = await apiFetch(`${API_BASE}/me`); if (!res.ok) throw new Error();
             const email = (await res.json()).email;
-            const nameEl = document.querySelector(".user-info .name"), avEl = document.querySelector(".user-avatar");
-            if (nameEl) nameEl.textContent = email.split("@")[0]; if (avEl) avEl.textContent = email.substring(0, 2).toUpperCase();
+            updateUserUI(email);
             $('loginScreen').style.display = 'none'; $('appContainer').classList.remove('hidden'); await loadNotes();
         } catch { forceLogout(); }
     })();
@@ -256,10 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     $('logoutBtn')?.addEventListener('click', () => forceLogout("Logged out"));
     const userSection = $('userSection');
-    $('userToggleBtn')?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        userSection?.classList.toggle('open');
-    });
+    $('userToggleBtn')?.addEventListener('click', (e) => { e.stopPropagation(); userSection?.classList.toggle('open'); });
     document.addEventListener('click', () => userSection?.classList.remove('open'));
 
     $('loginSubmitBtn')?.addEventListener('click', async () => {
@@ -277,32 +236,19 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!r.ok) throw new Error((await r.json()).detail || "Invalid credentials");
             const loginData = await r.json();
             ($('rememberMe')?.checked ? localStorage : sessionStorage).setItem("access_token", loginData.access_token);
-
-            // Immediately update sidebar with current login user
             updateUserUI(email);
-
-            $('loginScreen').style.display = 'none';
-            $('appContainer').classList.remove('hidden');
-
-            await loadNotes();
-        }
-        catch (e) { showLoginError(e.message); }
+            $('loginScreen').style.display = 'none'; $('appContainer').classList.remove('hidden'); await loadNotes();
+        } catch (e) { showLoginError(e.message); }
     });
     const showLoginError = msg => { $('loginError').textContent = msg; $('loginError').classList.remove('hidden'); };
 
     $('settingsBtn')?.addEventListener('click', () => { $('settingsModal').classList.remove('hidden'); setTimeout(() => $('settingsModal').classList.add('show'), 10); });
     $('closeSettingsBtn')?.addEventListener('click', () => { $('settingsModal').classList.remove('show'); setTimeout(() => $('settingsModal').classList.add('hidden'), 200); });
     $('saveSettingsBtn')?.addEventListener('click', () => {
-        const preset = presetSelect.value;
-
-        if (preset === "custom") {
-            localStorage.setItem("ai_custom_prompt", promptTextarea.value.trim());
-        }
-
-        showToast("Preferences Saved!");
-        $('closeSettingsBtn').click();
+        if (presetSelect.value === "custom") localStorage.setItem("ai_custom_prompt", promptTextarea.value.trim());
+        showToast("Preferences Saved!"); $('closeSettingsBtn').click();
     });
-    // FIX 2: Added "Content-Type": "application/json" header which was missing from this POST call
+
     $('changePasswordBtn')?.addEventListener('click', async () => {
         const old_p = $('currentPassword').value.trim(), new_p = $('newPassword').value.trim(), conf_p = $('confirmNewPassword').value.trim();
         if (!old_p || !new_p) return showToast("Fill all fields"); if (new_p !== conf_p) return showToast("Passwords don't match");
@@ -325,12 +271,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     $('historyToggle')?.addEventListener('click', () => toggleList('historyList', 'historyToggle'));
     $('savedToggle')?.addEventListener('click', () => toggleList('savedList', 'savedToggle'));
-    $('savedDecksToggle')?.addEventListener('click', async () => {
-        await renderSavedDecksSidebar();
-        toggleList('savedDecksList', 'savedDecksToggle');
-    });
+    $('savedDecksToggle')?.addEventListener('click', async () => { await renderSavedDecksSidebar(); toggleList('savedDecksList', 'savedDecksToggle'); });
 
-    // FIX 8: Use Promise.all to delete notes in parallel instead of sequential await in a loop
     $('clearHistoryBtn')?.addEventListener("click", async () => {
         if (!confirm("Clear all history?")) return;
         try {
@@ -353,9 +295,111 @@ document.addEventListener('DOMContentLoaded', () => {
     const showDeleteModal = async (id) => { if (confirm("Delete this note?")) { try { await apiFetch(`${API_BASE}/notes/${id}`, { method: "DELETE" }); await loadNotes(); showToast("Note deleted"); } catch { showToast("Delete failed"); } } };
 
     // ==========================================
+    // AUTO-MIND MAPPER (MERMAID.JS)
+    // ==========================================
+   // ==========================================
+    // AUTO-MIND MAPPER (MERMAID.JS) - BULLETPROOF
+    // ==========================================
+    async function renderMermaidDiagrams() {
+        // Look for all code blocks in the output
+        const blocks = aiOutput.querySelectorAll('pre code');
+        let foundDiagram = false;
+
+        blocks.forEach(block => {
+            const text = block.textContent.trim();
+            
+            // Aggressively catch mermaid code even if the AI forgot the specific markdown tag
+            if (block.className.includes('language-mermaid') || 
+                text.startsWith('graph ') || 
+                text.startsWith('flowchart ') || 
+                text.startsWith('mindmap')) {
+                
+                foundDiagram = true;
+                const pre = block.parentElement;
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'diagram-wrapper';
+                wrapper.style.padding = '20px';
+                wrapper.style.background = 'rgba(0,0,0,0.2)';
+                wrapper.style.borderRadius = '12px';
+                wrapper.style.marginTop = '20px';
+                wrapper.style.border = '1px solid var(--border)';
+                wrapper.style.overflowX = 'auto';
+                wrapper.style.textAlign = 'center';
+
+                const mermaidDiv = document.createElement('div');
+                mermaidDiv.className = 'mermaid';
+                
+                // Clean up any weird markdown formatting the AI might have hallucinated
+                mermaidDiv.textContent = text.replace(/```mermaid/g, '').replace(/```/g, '').trim();
+
+                wrapper.appendChild(mermaidDiv);
+                pre.replaceWith(wrapper);
+            }
+        });
+
+        if (foundDiagram) {
+            try {
+                if (typeof mermaid === 'undefined') {
+                    return showToast("Diagram engine loading...");
+                }
+                // Force a fresh initialization and render using the dark theme
+                mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+                await mermaid.run({ querySelector: '.mermaid', suppressErrors: true });
+            } catch (e) {
+                console.error("Mermaid Render Error:", e);
+                showToast("Syntax error in diagram.");
+            }
+        }
+    }
+
+    $('visualizeBtn')?.addEventListener('click', async () => {
+        if (!currentRawResponse || currentRawResponse.includes('Ready for refinement')) {
+            return showToast("Generate a summary first!");
+        }
+
+        const btn = $('visualizeBtn');
+        const origHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+        showToast("Drawing diagram...");
+
+        try {
+            // A much stricter prompt to force standard flowchart logic
+            const systemPrompt = "Convert the following text into a visual Mermaid.js flowchart. Use 'flowchart TD'. Use clean, simple syntax without parenthesis inside node text. Return ONLY the raw code block starting with ```mermaid. No explanation.";
+
+            const res = await apiFetch(`${API_BASE}/generate`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    system_prompt: systemPrompt, 
+                    prompt: currentRawResponse.substring(0, 3000),
+                    temperature: 0.1 // Strict temperature to prevent AI hallucinations
+                })
+            });
+
+            if (!res.ok) throw new Error("Backend Error");
+            const data = await res.json();
+
+            // Append diagram safely
+            currentRawResponse += "\n\n### Visual Diagram 🗺️\n" + data.response;
+
+            await streamText(aiOutput, currentRawResponse, () => {
+                if (window.renderMathInElement) renderMathInElement(aiOutput, { delimiters: [{ left: "$$", right: "$$", display: true }, { left: "$", right: "$", display: false }] });
+                enableLiveCode();
+                renderMermaidDiagrams(); // Call our upgraded render function!
+            });
+
+        } catch (err) {
+            showToast("Failed to draw diagram.");
+            console.error(err);
+        } finally {
+            btn.innerHTML = origHTML;
+            btn.disabled = false;
+        }
+    });
+    // ==========================================
     // TYPEWRITER STREAMING ENGINE
-    // FIX 5: Increased chunk size to 8 chars and interval to 16ms (one frame)
-    //         to reduce how often marked.parse is called during streaming
     // ==========================================
     const streamText = async (container, rawText, onFinish) => {
         container.classList.remove('empty-state');
@@ -385,10 +429,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const btn = $('processBtn'); btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Thinking...';
 
         try {
-            // 🔥 Dynamically compute system prompt at runtime
             const activePreset = localStorage.getItem("ai_preset") || "summary";
             let systemPromptText = "";
-
             if (activePreset === "custom") {
                 systemPromptText = localStorage.getItem("ai_custom_prompt") || "";
             } else {
@@ -411,6 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await streamText(aiOutput, data.response, () => {
                 if (window.renderMathInElement) renderMathInElement(aiOutput, { delimiters: [{ left: "$$", right: "$$", display: true }, { left: "$", right: "$", display: false }] });
                 enableLiveCode();
+                renderMermaidDiagrams(); // Auto-render if AI generated mermaid code
             });
 
             await loadNotes(); showToast("Complete");
@@ -419,7 +462,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     $('newNoteBtn')?.addEventListener('click', () => { userInput.value = ''; aiOutput.innerHTML = '<i class="fa-solid fa-layer-group"></i><p>Ready</p>'; aiOutput.classList.add('empty-state'); currentRawResponse = ""; lastGeneratedNoteId = null; });
 
-    // FIX 9: Added value check before split to avoid returning 1 for empty string
     userInput.addEventListener('input', e => {
         const val = e.target.value.trim();
         $('inputStats').innerText = (val === '' ? 0 : val.split(/\s+/).filter(x => x).length) + ' words';
@@ -443,8 +485,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // FIX 3: Wrap eval in an iframe sandbox to prevent scope pollution.
-    //         console.log is now safely captured and always restored even on error.
     const executeCode = (block, pre) => {
         pre.nextElementSibling?.classList.contains('code-output') && pre.nextElementSibling.remove();
         const out = document.createElement('div'); out.className = 'code-output show';
@@ -494,6 +534,7 @@ document.addEventListener('DOMContentLoaded', () => {
     $('focusBtn')?.addEventListener('click', () => { $('inputPanel').classList.add('hidden'); $('resizeHandler').classList.add('hidden'); $('outputPanel').classList.add('focus-mode'); $('workspace').classList.add('focus-active'); $('exitFocusBtn').classList.remove('hidden'); $('exitFocusBtn').classList.add('show'); });
     const exitFocus = () => { $('inputPanel').classList.remove('hidden'); $('resizeHandler').classList.remove('hidden'); $('outputPanel').classList.remove('focus-mode'); $('workspace').classList.remove('focus-active'); $('exitFocusBtn').classList.remove('show'); $('exitFocusBtn').classList.add('hidden'); };
     $('exitFocusBtn')?.addEventListener('click', exitFocus);
+    
     document.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
         exitFocus();
@@ -501,43 +542,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!$('cmdPalette')?.classList.contains('hidden')) { $('cmdPalette').classList.remove('show'); setTimeout(() => $('cmdPalette').classList.add('hidden'), 200); }
         if (chatSidebar.classList.contains('open')) toggleChat();
         if ($('confirmOverlay')?.classList.contains('show')) { $('confirmOverlay').classList.remove('show'); }
-        const lightbox = document.getElementById('imageLightbox');
-        if (lightbox) lightbox.remove();
-
-        // ── Flashcard Escape Handling ──
-
-        // 1. Exit warning overlay (during active flashcard session) — dismiss it
-        if (!$('fcExitOverlay').classList.contains('hidden')) {
-            $('fcExitOverlay').classList.add('hidden');
-            return;
-        }
-
-        // 2. Active flashcard mode or review screen — show exit warning
-        if (!$('fcModeScreen').classList.contains('hidden') ||
-            !$('fcReviewScreen').classList.contains('hidden')) {
-            window._fcAskExit?.();   // ✓ correct
-            return;
-        }
-
-        // 3. Config/loading/error modal — close it directly, no warning needed
-        if (!$('fcOverlay').classList.contains('hidden')) {
-            $('fcOverlay').classList.add('hidden');
-            return;
-        }
-
-        // 4. Summary screen — close it directly
-        if (!$('fcSummaryScreen').classList.contains('hidden')) {
-            $('fcSummaryScreen').classList.add('hidden');
-            return;
-        }
-        // 5. Saved decks screen — close and return to config
-        if (!$('fcSavedScreen')?.classList.contains('hidden')) {
-            $('fcSavedScreen').classList.add('hidden');
-            $('fcOverlay').classList.remove('hidden');
-            window._fcShowStep('fcStepConfig');
-            return;
-        }
+        
+        if (!$('fcExitOverlay').classList.contains('hidden')) { $('fcExitOverlay').classList.add('hidden'); return; }
+        if (!$('fcModeScreen').classList.contains('hidden') || !$('fcReviewScreen').classList.contains('hidden')) { window._fcAskExit?.(); return; }
+        if (!$('fcOverlay').classList.contains('hidden')) { $('fcOverlay').classList.add('hidden'); return; }
+        if (!$('fcSummaryScreen').classList.contains('hidden')) { $('fcSummaryScreen').classList.add('hidden'); return; }
+        if (!$('fcSavedScreen')?.classList.contains('hidden')) { $('fcSavedScreen').classList.add('hidden'); $('fcOverlay').classList.remove('hidden'); window._fcShowStep('fcStepConfig'); return; }
     });
+
     let audioCtx, noiseSrc;
     $('focusSoundBtn')?.addEventListener('click', () => {
         if (noiseSrc) { noiseSrc.stop(); noiseSrc = null; $('focusSoundBtn').classList.remove('active'); showToast("Focus: OFF"); return; }
@@ -591,22 +603,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (action === 'explain') systemPromptAddon = "Explain the following code or concept step-by-step so a beginner can understand.";
 
             try {
-                // Apply system prompt preset
                 const preset = localStorage.getItem("ai_preset") || "summary";
                 let systemPrompt = "";
-
-                if (preset === "custom") {
-                    systemPrompt = localStorage.getItem("ai_custom_prompt") || "";
-                } else {
-                    systemPrompt = promptPresets[preset] || "";
-                }
+                if (preset === "custom") systemPrompt = localStorage.getItem("ai_custom_prompt") || "";
+                else systemPrompt = promptPresets[preset] || "";
 
                 const res = await apiFetch(`${API_BASE}/generate`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        system_prompt: systemPrompt.trim(),
-                        prompt: text.trim()
+                        system_prompt: systemPrompt.trim() + "\n" + systemPromptAddon,
+                        prompt: selectedTextForMenu
                     })
                 });
                 if (!res.ok) throw new Error("Backend Error");
@@ -617,6 +624,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await streamText(aiOutput, data.response, () => {
                     if (window.renderMathInElement) renderMathInElement(aiOutput, { delimiters: [{ left: "$$", right: "$$", display: true }, { left: "$", right: "$", display: false }] });
                     enableLiveCode();
+                    renderMermaidDiagrams(); // Auto-render if AI generates code via rewrite/explain
                 });
 
                 await loadNotes(); showToast(action.charAt(0).toUpperCase() + action.slice(1) + " Complete!");
@@ -663,15 +671,10 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const chatPrompt = `You are a helpful study assistant. Use the provided Context to answer the User's Question. Keep your answer concise, conversational, and format it nicely in markdown.\n\nContext:\n${contextText.substring(0, 3000)}\n\nUser Question:\n${msg}`;
 
-            // --- Apply preset to chat ---
             const activePreset = localStorage.getItem("ai_preset") || "summary";
             let systemPromptText = "";
-
-            if (activePreset === "custom") {
-                systemPromptText = localStorage.getItem("ai_custom_prompt") || "";
-            } else {
-                systemPromptText = promptPresets[activePreset] || "";
-            }
+            if (activePreset === "custom") systemPromptText = localStorage.getItem("ai_custom_prompt") || "";
+            else systemPromptText = promptPresets[activePreset] || "";
 
             const res = await apiFetch(`${API_BASE}/generate`, {
                 method: "POST",
@@ -702,20 +705,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // FLASHCARD FEATURE
     // ==========================================
     (function () {
-        // ── State
         let fcConfig = { count: 10, topic: '', difficulty: 'Intermediate', cardType: 'Mixed' };
         let fcCards = [], fcActiveCards = [], fcCardIdx = 0, fcRevealed = false, fcRatings = {};
 
-        // ── Element shortcuts
         const el = id => document.getElementById(id);
 
-        // ── Show/hide steps inside config modal
         function fcShowStep(step) {
             ['fcStepConfig', 'fcStepLoading', 'fcStepError'].forEach(s => el(s).classList.add('hidden'));
             el(step).classList.remove('hidden');
         }
 
-        // ── Open config modal
         el('flashcardChip').addEventListener('click', () => {
             fcResetConfig();
             el('fcOverlay').classList.remove('hidden');
@@ -732,7 +731,6 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('#fcTypeRow .fc-pill-btn').forEach(b => b.classList.toggle('fc-pill-selected', b.dataset.val === 'Mixed'));
         }
 
-        // Preset count buttons
         document.querySelectorAll('.fc-preset-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.fc-preset-btn').forEach(b => b.classList.remove('fc-selected'));
@@ -741,7 +739,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Difficulty pills
         document.querySelectorAll('#fcDiffRow .fc-pill-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('#fcDiffRow .fc-pill-btn').forEach(b => b.classList.remove('fc-pill-selected'));
@@ -750,7 +747,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Card type pills
         document.querySelectorAll('#fcTypeRow .fc-pill-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('#fcTypeRow .fc-pill-btn').forEach(b => b.classList.remove('fc-pill-selected'));
@@ -759,19 +755,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Cancel modal
         el('fcCancelBtn').addEventListener('click', () => el('fcOverlay').classList.add('hidden'));
 
-        // FIX 4 (preset bug): fcGenerate now reads count directly from the selected
-        // preset button at call time, so 20 and 30 always work correctly.
-        // fcRetryBtn now calls fcGenerate directly (no duplicate fcGenerateFromConfig needed).
         el('fcGenerateBtn').addEventListener('click', fcGenerate);
         el('fcTopic').addEventListener('keydown', e => { if (e.key === 'Enter') fcGenerate(); });
         el('fcRetryBtn').addEventListener('click', fcGenerate);
         el('fcBackBtn').addEventListener('click', () => fcShowStep('fcStepConfig'));
 
         async function fcGenerate() {
-            // FIX 4: Read count from the visually selected button, not stale state
             const selectedPreset = document.querySelector('.fc-preset-btn.fc-selected');
             if (selectedPreset) fcConfig.count = parseInt(selectedPreset.dataset.val);
 
@@ -788,7 +779,6 @@ document.addEventListener('DOMContentLoaded', () => {
             el('fcLoadTopic').textContent = `"${fcConfig.topic}"`;
             fcShowStep('fcStepLoading');
 
-            // FIX 4 (cont): Single prompt build — no duplication
             const prompt = `Generate exactly ${fcConfig.count} flashcards about "${fcConfig.topic}". Difficulty: ${fcConfig.difficulty}. Type: ${fcConfig.cardType}. Respond with ONLY a valid JSON array. Each item must have: "question", "answer", "explanation", "hint". Keep questions concise. Answers 1-3 sentences. No markdown, no extra text.`;
 
             try {
@@ -811,7 +801,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // ── Review screen
         function fcShowReview() {
             el('fcReviewMeta').textContent = `${fcCards.length} cards · ${fcConfig.topic} · ${fcConfig.difficulty}`;
             fcRenderCardList();
@@ -863,11 +852,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             el('fcCancelEdit').addEventListener('click', () => fcRenderCardList());
 
-            // Escape cancels the edit without bubbling up to close the whole review screen
             [el('fcEditQ'), el('fcEditA')].forEach(textarea => {
                 textarea.addEventListener('keydown', e => {
                     if (e.key === 'Escape') {
-                        e.stopPropagation();  // prevents the global handler from firing
+                        e.stopPropagation();
                         fcRenderCardList();
                     }
                 });
@@ -882,7 +870,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         el('fcStartBtn').addEventListener('click', () => fcStartMode(fcCards));
-        // ── Save deck to backend
+        
         el('fcSaveBtn').addEventListener('click', async () => {
             try {
                 const res = await apiFetch(`${API_BASE}/flashcards`, {
@@ -901,21 +889,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // ── Open saved decks screen
         el('fcViewSavedBtn').addEventListener('click', () => {
             el('fcOverlay').classList.add('hidden');
             fcRenderSavedDecks();
             el('fcSavedScreen').classList.remove('hidden');
         });
 
-        // ── Close saved decks screen
         el('fcSavedCloseBtn').addEventListener('click', () => {
             el('fcSavedScreen').classList.add('hidden');
             el('fcOverlay').classList.remove('hidden');
             fcShowStep('fcStepConfig');
         });
 
-        // ── Load and render saved decks from backend
         async function fcRenderSavedDecks() {
             const list = el('fcSavedList');
             list.innerHTML = '<div class="fc-empty-saved">Loading...</div>';
@@ -968,7 +953,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // ── Flashcard mode
         function fcStartMode(deck) {
             fcActiveCards = deck;
             fcCardIdx = 0;
@@ -984,12 +968,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = fcActiveCards[fcCardIdx];
             const total = fcActiveCards.length;
 
-            // topbar
             el('fcTopicLabel').textContent = fcConfig.topic;
             el('fcProgressText').textContent = `Card ${fcCardIdx + 1} of ${total}`;
             el('fcProgressFill').style.width = `${((fcCardIdx + 1) / total) * 100}%`;
 
-            // desktop
             el('fcCardQ').textContent = card.question;
             el('fcPrevBtn').disabled = fcCardIdx === 0;
             el('fcNextBtn').textContent = fcCardIdx === total - 1 ? 'Finish' : 'Next →';
@@ -997,7 +979,6 @@ document.addEventListener('DOMContentLoaded', () => {
             el('fcAnswerBlock').classList.add('hidden');
             el('fcRightEmpty').classList.remove('hidden');
 
-            // clear ratings
             document.querySelectorAll('#fcPanes .fc-rating-btn').forEach(b => b.classList.remove('fc-rated'));
             if (fcRatings[fcCardIdx]) {
                 document.querySelectorAll('#fcPanes .fc-rating-btn').forEach(b => {
@@ -1005,7 +986,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
-            // mobile
             el('fcMobileCard').textContent = card.question;
             el('fcMobileShowBtn').classList.remove('hidden');
             el('fcMobileAnswer').classList.add('hidden');
@@ -1014,7 +994,6 @@ document.addEventListener('DOMContentLoaded', () => {
             el('fcMobileNext').textContent = fcCardIdx === total - 1 ? 'Finish' : 'Next →';
         }
 
-        // Show answer (desktop)
         el('fcShowBtn').addEventListener('click', () => {
             fcRevealed = true;
             const card = fcActiveCards[fcCardIdx];
@@ -1028,7 +1007,6 @@ document.addEventListener('DOMContentLoaded', () => {
             el('fcHintSection').style.display = card.hint ? 'block' : 'none';
         });
 
-        // Show answer (mobile)
         el('fcMobileShowBtn').addEventListener('click', () => {
             const card = fcActiveCards[fcCardIdx];
             el('fcMobileShowBtn').classList.add('hidden');
@@ -1037,7 +1015,6 @@ document.addEventListener('DOMContentLoaded', () => {
             el('fcMobileRating').style.display = 'flex';
         });
 
-        // Rating (desktop)
         document.querySelectorAll('#fcPanes .fc-rating-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 fcRatings[fcCardIdx] = btn.dataset.rating;
@@ -1046,7 +1023,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Rating (mobile)
         document.querySelectorAll('#fcMobileRating .fc-rating-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 fcRatings[fcCardIdx] = btn.dataset.rating;
@@ -1055,11 +1031,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Nav (desktop)
         el('fcPrevBtn').addEventListener('click', () => { if (fcCardIdx > 0) { fcCardIdx--; fcRenderCard(); } });
         el('fcNextBtn').addEventListener('click', fcNext);
 
-        // Nav (mobile)
         el('fcMobilePrev').addEventListener('click', () => { if (fcCardIdx > 0) { fcCardIdx--; fcRenderCard(); } });
         el('fcMobileNext').addEventListener('click', fcNext);
 
@@ -1072,25 +1046,19 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // ── Exit handling
         el('fcExitBtn').addEventListener('click', () => fcAskExit());
 
-        function fcAskExit() {
-            el('fcExitOverlay').classList.remove('hidden');
-        }
-        window._fcAskExit = fcAskExit;   // expose to global keydown handler
-        window._fcShowStep = fcShowStep; // expose to global keydown handler
+        function fcAskExit() { el('fcExitOverlay').classList.remove('hidden'); }
+        window._fcAskExit = fcAskExit;
+        window._fcShowStep = fcShowStep;
         window._loadDeckFromSidebar = (cards, topic, difficulty) => {
             fcCards = cards;
             fcConfig.topic = topic;
             fcConfig.difficulty = difficulty;
             fcConfig.count = cards.length;
-
-            // Jump straight to Review screen
             document.getElementById('fcReviewScreen').classList.remove('hidden');
             fcRenderCardList();
-            document.getElementById('fcReviewMeta').textContent =
-                `${cards.length} cards · ${topic} · ${difficulty}`;
+            document.getElementById('fcReviewMeta').textContent = `${cards.length} cards · ${topic} · ${difficulty}`;
         };
         el('fcExitCancelBtn').addEventListener('click', () => el('fcExitOverlay').classList.add('hidden'));
         el('fcExitConfirmBtn').addEventListener('click', () => {
@@ -1099,7 +1067,6 @@ document.addEventListener('DOMContentLoaded', () => {
             el('fcReviewScreen').classList.add('hidden');
         });
 
-        // Intercept other chip buttons during flashcard mode
         document.querySelectorAll('.chip').forEach(chip => {
             if (chip.id === 'flashcardChip') return;
             chip.addEventListener('click', () => {
@@ -1109,8 +1076,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // FIX 6: Re-added fcGuardedIds intercept that was removed in the last version,
-        // so header/sidebar buttons correctly trigger exit warning during a flashcard session
         const fcGuardedIds = [
             'newNoteBtn', 'historyToggle', 'savedToggle', 'clearHistoryBtn',
             'logoutBtn', 'settingsBtn', 'chatToggleBtn', 'focusBtn',
@@ -1129,7 +1094,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }, true);
         });
 
-        // ── Summary
         function fcShowSummary() {
             el('fcModeScreen').classList.add('hidden');
             const got = Object.values(fcRatings).filter(r => r === 'got').length;

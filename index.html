@@ -9,11 +9,9 @@
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
 
-    <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- Third-party scripts — all deferred so they don't block page render -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
@@ -27,7 +25,6 @@
 
 <body>
 
-    <!-- ==================== LOGIN SCREEN ==================== -->
     <div id="loginScreen" class="login-container">
         <div class="ambient-blob blob-purple"></div>
         <div class="ambient-blob blob-blue"></div>
@@ -56,7 +53,6 @@
                 <input type="password" id="confirmPass" placeholder="Confirm Password">
             </div>
 
-            <!-- Moved inline styles to CSS classes: .login-footer-row, .toggle-auth-btn -->
             <div class="login-footer-row">
                 <label class="remember-label">
                     <input type="checkbox" id="rememberMe" class="remember-checkbox">
@@ -73,7 +69,6 @@
         </div>
     </div>
 
-    <!-- ==================== MAIN APP ==================== -->
     <div class="app-container hidden" id="appContainer">
 
         <aside class="sidebar" id="sidebar">
@@ -101,7 +96,6 @@
                     <div id="savedList" class="nav-list" style="display: none;"></div>
                 </div>
 
-                <!-- NEW: Saved Decks button -->
                 <div class="nav-section">
                     <button class="nav-btn saved-decks-btn" id="savedDecksToggle">
                         <i class="fa-solid fa-layer-group"></i> Saved Decks
@@ -189,8 +183,6 @@
                             <span class="panel-title"><i class="fa-regular fa-keyboard"></i> Input</span>
                             <span id="aiModeBadge" class="ai-mode-badge">Summary 📘</span>
                         </div>
-                        <!-- Converted onclick="setTemplate(...)" to data-action so they're ready
-                             to be wired up in JS without calling an undefined function -->
                         <div class="template-bar">
                             <button class="chip" data-action="general">General</button>
                             <button class="chip" id="flashcardChip">Flashcard</button>
@@ -208,6 +200,9 @@
                     <div class="panel-head">
                         <span class="panel-title"><i class="fa-solid fa-robot"></i> AI Summary</span>
                         <div class="panel-actions">
+                            <button class="icon-btn" id="visualizeBtn" title="Create Diagram">
+                                <i class="fa-solid fa-diagram-project"></i>
+                            </button>
                             <button class="icon-btn" id="saveNoteBtn" title="Save to Notebook">
                                 <i class="fa-regular fa-bookmark"></i>
                             </button>
@@ -265,7 +260,6 @@
         </main>
     </div>
 
-    <!-- ==================== CMD PALETTE ==================== -->
     <div id="cmdPalette" class="palette-overlay hidden">
         <div class="palette-modal">
             <div class="palette-search">
@@ -281,8 +275,6 @@
         </div>
     </div>
 
-    <!-- ==================== SETTINGS MODAL ==================== -->
-    <!-- Moved inline width/padding to .settings-card rule in CSS -->
     <div id="settingsModal" class="palette-overlay hidden">
         <div class="palette-modal settings-card glass-panel">
             <div class="settings-header">
@@ -309,20 +301,17 @@
                         <option value="creative">🎨 Creative Rewrite</option>
                     </select>
 
-                    <!-- EXISTING TEXTAREA -->
                     <textarea id="settingPrompt" rows="3"
                         placeholder="E.g., You are an expert tutor. Summarize clearly..."></textarea>
 
                     <small class="setting-hint">This tells the AI how to act. It gets sent with every request.</small>
                 </div>
 
-                <!-- Moved inline margin-top to .setting-group-spaced class -->
                 <div class="setting-group setting-group-spaced">
                     <label>Change Password</label>
                     <input type="password" id="currentPassword" placeholder="Current Password">
                     <input type="password" id="newPassword" placeholder="New Password">
                     <input type="password" id="confirmNewPassword" placeholder="Confirm New Password">
-                    <!-- Moved inline margin-top to .setting-submit-btn class -->
                     <button id="changePasswordBtn" class="login-btn fluid-gradient setting-submit-btn">
                         Update Password
                     </button>
@@ -331,11 +320,9 @@
         </div>
     </div>
 
-    <!-- ==================== FLASHCARD CONFIG MODAL ==================== -->
     <div id="fcOverlay" class="fc-overlay hidden">
         <div class="fc-modal" id="fcModal">
 
-            <!-- STEP: CONFIG -->
             <div id="fcStepConfig">
                 <div class="fc-modal-header">
                     <div class="fc-modal-title">Create Flashcards</div>
@@ -380,7 +367,6 @@
                 </div>
             </div>
 
-            <!-- STEP: LOADING -->
             <div id="fcStepLoading" class="hidden">
                 <div class="fc-loading-wrap">
                     <div class="fc-spinner"></div>
@@ -389,7 +375,6 @@
                 </div>
             </div>
 
-            <!-- STEP: ERROR -->
             <div id="fcStepError" class="hidden">
                 <div class="fc-error-wrap">
                     <div class="fc-error-icon">⚠</div>
@@ -402,7 +387,6 @@
         </div>
     </div>
 
-    <!-- ==================== FLASHCARD REVIEW SCREEN ==================== -->
     <div id="fcReviewScreen" class="fc-fullscreen hidden">
         <div class="fc-review-wrap">
             <div class="fc-review-header">
@@ -420,7 +404,6 @@
         </div>
     </div>
 
-    <!-- ==================== FLASHCARD MODE ==================== -->
     <div id="fcModeScreen" class="fc-fullscreen hidden">
         <div class="fc-topbar">
             <div class="fc-topbar-left">
@@ -433,7 +416,6 @@
             <button class="fc-btn fc-btn-ghost fc-btn-sm" id="fcExitBtn">Exit</button>
         </div>
 
-        <!-- Desktop two-pane -->
         <div class="fc-panes" id="fcPanes">
             <div class="fc-left">
                 <div class="fc-card" id="fcCardBox">
@@ -479,8 +461,6 @@
             </div>
         </div>
 
-        <!-- Mobile single-pane -->
-        <!-- Moved padding inline styles to CSS classes .fc-mobile-answer-text, .fc-mobile-rating-wrap -->
         <div class="fc-mobile" id="fcMobile">
             <div class="fc-mobile-card" id="fcMobileCard"></div>
             <button class="fc-show-btn" id="fcMobileShowBtn">Show Answer</button>
@@ -497,7 +477,6 @@
         </div>
     </div>
 
-    <!-- ==================== SESSION SUMMARY ==================== -->
     <div id="fcSummaryScreen" class="fc-fullscreen hidden">
         <div class="fc-summary-wrap">
             <div>
@@ -526,8 +505,6 @@
         </div>
     </div>
 
-    <!-- ==================== EXIT WARNING MODAL ==================== -->
-    <!-- Moved inline text-align/padding styles to .fc-exit-header and .fc-exit-footer classes -->
     <div id="fcExitOverlay" class="fc-overlay hidden">
         <div class="fc-modal fc-exit-modal">
             <div class="fc-modal-header fc-exit-header">
@@ -541,7 +518,6 @@
             </div>
         </div>
     </div>
-    <!-- ==================== SAVED FLASHCARD DECKS ==================== -->
     <div id="fcSavedScreen" class="fc-fullscreen hidden">
         <div class="fc-review-wrap">
             <div class="fc-review-header">
