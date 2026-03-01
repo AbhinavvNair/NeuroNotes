@@ -636,13 +636,53 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // CONTEXTUAL AI CHAT SIDEBAR
     // ==========================================
+    // ==========================================
+    // CONTEXTUAL AI CHAT SIDEBAR
+    // ==========================================
     const chatSidebar = $('chatSidebar'), chatInput = $('chatInput'), chatMessages = $('chatMessages');
 
+    let currentChatContextId = null; // Keeps track of what note we are currently discussing
+
+    // Smart Greeting Generator
+    const updateChatGreeting = () => {
+        chatMessages.innerHTML = ''; // Clear previous chat history for the new topic
+        const greetingDiv = document.createElement('div');
+        greetingDiv.className = 'chat-msg ai';
+        
+        const contextText = aiOutput.innerText.includes('Ready for refinement') ? userInput.value : aiOutput.innerText;
+        
+        if (!contextText.trim() || contextText.includes('Ready for refinement')) {
+            greetingDiv.innerText = "Hi! Paste some notes first so we have something to talk about.";
+        } else {
+            // Grab the first real line of the note to use as the Topic Name
+            let firstLine = contextText.split('\n').find(line => line.trim().length > 0 && !line.startsWith('```')) || "";
+            
+            // Strip out markdown formatting (like #, *, -) to get the pure text
+            let topic = firstLine.replace(/^[#*\-\s:]+|[#*\-\s:]+$/g, '').substring(0, 40).trim();
+            
+            // If the first line is just a long sentence instead of a title, fallback to a smart generic greeting
+            if (topic.split(' ').length > 7 || topic.length < 3) {
+                greetingDiv.innerText = "I've analyzed your document. What specific part would you like to dive into?";
+            } else {
+                greetingDiv.innerText = `So, what would you like to ask about ${topic}?`;
+            }
+        }
+        chatMessages.appendChild(greetingDiv);
+    };
+
     const toggleChat = () => {
+        // Automatically reset the chat and update the greeting ONLY if the user switched to a new note
+        const newContextId = lastGeneratedNoteId || userInput.value.substring(0, 20);
+        if (currentChatContextId !== newContextId) {
+            updateChatGreeting();
+            currentChatContextId = newContextId;
+        }
+
         chatSidebar.classList.toggle('open');
         $('workspace').classList.toggle('chat-open');
         if (chatSidebar.classList.contains('open')) chatInput.focus();
     };
+
     $('chatToggleBtn')?.addEventListener('click', toggleChat);
     $('closeChatBtn')?.addEventListener('click', toggleChat);
 
@@ -700,7 +740,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     $('sendChatBtn')?.addEventListener('click', handleChatSend);
     chatInput?.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleChatSend(); });
-
     // ==========================================
     // FLASHCARD FEATURE
     // ==========================================
