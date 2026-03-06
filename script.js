@@ -1426,7 +1426,7 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (percentage >= 50) el('quizScoreDisplay').style.color = '#f59e0b';
             else el('quizScoreDisplay').style.color = '#ef4444';
 
-            if (quizConfig.timeLimit > 0) {
+           if (quizConfig.timeLimit > 0) {
                 const timeTaken = totalTime - timeRemaining;
                 el('quizTimeTakenDisplay').textContent = `Time taken: ${formatTime(timeTaken)}`;
             } else {
@@ -1434,11 +1434,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             showQuizPhase('quizResults');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // FIX: Scroll the specific container back to the top, not the window!
+            el('quizExamWrap').scrollTop = 0; 
         }
 
         el('submitQuizBtn')?.addEventListener('click', () => {
-            if (userAnswers.includes(null) && !confirm("You have unanswered questions. Are you sure you want to submit?")) return;
+            // FIX: Use our custom Toast instead of browser confirm() which gets blocked
+            if (userAnswers.includes(null)) {
+                showToast("⚠️ Please answer all questions before submitting!");
+                return;
+            }
             gradeQuiz();
         });
     })();

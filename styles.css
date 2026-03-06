@@ -451,7 +451,7 @@ pre code { display: block; padding: 20px; overflow-x: auto; font-family: 'Fira C
 .quiz-setup-subtitle { color: var(--text-muted); margin-bottom: 35px; font-size: 0.95rem; }
 .quiz-config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; text-align: left; }
 
-.quiz-active-header { display: flex; justify-content: space-between; align-items: center; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); padding: 15px 25px; border: 1px solid var(--border); position: sticky; top: 80px; z-index: 100; margin-bottom: 30px; border-radius: 16px; box-shadow: 0 15px 35px rgba(0,0,0,0.4); }
+.quiz-active-header { display: flex; justify-content: space-between; align-items: center; background: var(--bg-panel); padding: 15px 25px; border: 1px solid var(--primary); position: sticky; top: 80px; z-index: 2000; margin-bottom: 30px; border-radius: 16px; box-shadow: 0 15px 35px rgba(0,0,0,0.8); }
 .quiz-timer { font-size: 1.4rem; font-weight: 800; font-family: 'Fira Code', monospace; display: flex; align-items: center; gap: 10px; transition: color 0.3s; }
 .quiz-timer.safe { color: #22c55e; }
 .quiz-timer.warn { color: #f59e0b; }
