@@ -9,9 +9,11 @@
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
 
+    <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- Third-party scripts -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
@@ -25,6 +27,7 @@
 
 <body>
 
+    <!-- ==================== LOGIN SCREEN ==================== -->
     <div id="loginScreen" class="login-container">
         <div class="ambient-blob blob-purple"></div>
         <div class="ambient-blob blob-blue"></div>
@@ -65,6 +68,7 @@
         </div>
     </div>
 
+    <!-- ==================== LOGOUT MODAL ==================== -->
     <div id="logoutConfirmOverlay" class="confirm-overlay">
         <div class="confirm-modal logout-modal">
             <div class="fc-exit-header">
@@ -80,6 +84,7 @@
         </div>
     </div>
 
+    <!-- ==================== MAIN APP ==================== -->
     <div class="app-container hidden" id="appContainer">
 
         <aside class="sidebar" id="sidebar">
@@ -117,6 +122,13 @@
                 <div class="nav-section">
                     <button class="nav-btn" id="quizArenaToggle">
                         <i class="fa-solid fa-trophy"></i> Quiz Arena
+                    </button>
+                </div>
+
+                <!-- NEW: Knowledge Graph Button -->
+                <div class="nav-section">
+                    <button class="nav-btn" id="graphToggle">
+                        <i class="fa-solid fa-network-wired"></i> Knowledge Graph
                     </button>
                 </div>
 
@@ -162,10 +174,8 @@
                         <div class="theme-menu">
                             <button class="theme-option" data-idx="0"><i class="fa-solid fa-moon"></i> Nebula</button>
                             <button class="theme-option" data-idx="1"><i class="fa-solid fa-sun"></i> Daylight</button>
-                            <button class="theme-option" data-idx="2"><i class="fa-solid fa-battery-quarter"></i>
-                                Midnight</button>
-                            <button class="theme-option" data-idx="3"><i class="fa-solid fa-terminal"></i>
-                                Hacker</button>
+                            <button class="theme-option" data-idx="2"><i class="fa-solid fa-battery-quarter"></i> Midnight</button>
+                            <button class="theme-option" data-idx="3"><i class="fa-solid fa-terminal"></i> Hacker</button>
                             <button class="theme-option" data-idx="4"><i class="fa-solid fa-fire"></i> Sunset</button>
                         </div>
                     </div>
@@ -242,8 +252,7 @@
                         <div class="audio-controls">
                             <select id="voiceSelect" class="voice-select"></select>
                             <button class="audio-btn" id="stopAudioBtn"><i class="fa-solid fa-stop"></i></button>
-                            <button class="audio-btn main-play" id="playAudioBtn"><i
-                                    class="fa-solid fa-play"></i></button>
+                            <button class="audio-btn main-play" id="playAudioBtn"><i class="fa-solid fa-play"></i></button>
                             <button class="audio-btn speed" id="speedBtn">1x</button>
                         </div>
                     </div>
@@ -251,8 +260,7 @@
             </div>
 
             <div id="floatingMenu" class="floating-menu hidden">
-                <button class="float-btn" data-action="rewrite"><i class="fa-solid fa-wand-magic-sparkles"></i>
-                    Rewrite</button>
+                <button class="float-btn" data-action="rewrite"><i class="fa-solid fa-wand-magic-sparkles"></i> Rewrite</button>
                 <button class="float-btn" data-action="summarize"><i class="fa-solid fa-list"></i> Summarize</button>
                 <button class="float-btn" data-action="explain"><i class="fa-solid fa-code"></i> Explain</button>
                 <button class="float-btn" data-action="read"><i class="fa-solid fa-volume-high"></i> Read</button>
@@ -277,6 +285,7 @@
         </main>
     </div>
 
+    <!-- ==================== CMD PALETTE ==================== -->
     <div id="cmdPalette" class="palette-overlay hidden">
         <div class="palette-modal">
             <div class="palette-search">
@@ -292,6 +301,7 @@
         </div>
     </div>
 
+    <!-- ==================== SETTINGS MODAL ==================== -->
     <div id="settingsModal" class="palette-overlay hidden">
         <div class="palette-modal settings-card glass-panel">
             <div class="settings-header">
@@ -318,9 +328,7 @@
                         <option value="creative">🎨 Creative Rewrite</option>
                     </select>
 
-                    <textarea id="settingPrompt" rows="3"
-                        placeholder="E.g., You are an expert tutor. Summarize clearly..."></textarea>
-
+                    <textarea id="settingPrompt" rows="3" placeholder="E.g., You are an expert tutor. Summarize clearly..."></textarea>
                     <small class="setting-hint">This tells the AI how to act. It gets sent with every request.</small>
                 </div>
 
@@ -337,9 +345,9 @@
         </div>
     </div>
 
+    <!-- ==================== FLASHCARD CONFIG MODAL ==================== -->
     <div id="fcOverlay" class="fc-overlay hidden">
         <div class="fc-modal" id="fcModal">
-
             <div id="fcStepConfig">
                 <div class="fc-modal-header">
                     <div class="fc-modal-title">Create Flashcards</div>
@@ -356,8 +364,7 @@
                     </div>
                     <div class="fc-form-group">
                         <label class="fc-label">Topic</label>
-                        <input class="fc-input" id="fcTopic" type="text"
-                            placeholder="e.g. Microeconomics, Roman History…" maxlength="100">
+                        <input class="fc-input" id="fcTopic" type="text" placeholder="e.g. Microeconomics, Roman History…" maxlength="100">
                         <span class="fc-error hidden" id="fcTopicError">Topic is required</span>
                     </div>
                     <div class="fc-form-group">
@@ -387,8 +394,7 @@
             <div id="fcStepLoading" class="hidden">
                 <div class="fc-loading-wrap">
                     <div class="fc-spinner"></div>
-                    <div class="fc-loading-msg">Generating <strong id="fcLoadCount"></strong> flashcards on<br><strong
-                            id="fcLoadTopic"></strong>…</div>
+                    <div class="fc-loading-msg">Generating <strong id="fcLoadCount"></strong> flashcards on<br><strong id="fcLoadTopic"></strong>…</div>
                 </div>
             </div>
 
@@ -400,10 +406,10 @@
                     <button class="fc-btn fc-btn-ghost fc-btn-sm" id="fcBackBtn">← Back</button>
                 </div>
             </div>
-
         </div>
     </div>
 
+    <!-- ==================== FLASHCARD REVIEW SCREEN ==================== -->
     <div id="fcReviewScreen" class="fc-fullscreen hidden">
         <div class="fc-review-wrap">
             <div class="fc-review-header">
@@ -421,6 +427,7 @@
         </div>
     </div>
 
+    <!-- ==================== FLASHCARD MODE ==================== -->
     <div id="fcModeScreen" class="fc-fullscreen hidden">
         <div class="fc-topbar">
             <div class="fc-topbar-left">
@@ -494,6 +501,7 @@
         </div>
     </div>
 
+    <!-- ==================== SESSION SUMMARY ==================== -->
     <div id="fcSummaryScreen" class="fc-fullscreen hidden">
         <div class="fc-summary-wrap">
             <div>
@@ -522,6 +530,7 @@
         </div>
     </div>
 
+    <!-- ==================== EXIT WARNING MODAL ==================== -->
     <div id="fcExitOverlay" class="fc-overlay hidden">
         <div class="fc-modal fc-exit-modal">
             <div class="fc-modal-header fc-exit-header">
@@ -536,6 +545,7 @@
         </div>
     </div>
 
+    <!-- ==================== SAVED FLASHCARD DECKS ==================== -->
     <div id="fcSavedScreen" class="fc-fullscreen hidden">
         <div class="fc-review-wrap">
             <div class="fc-review-header">
@@ -549,9 +559,9 @@
         </div>
     </div>
 
+    <!-- ==================== QUIZ ARENA ==================== -->
     <div id="quizScreen" class="fc-fullscreen hidden" style="background: var(--bg-app); z-index: 9000;">
-        <div class="fc-review-header"
-            style="position: absolute; top: 0; left: 0; right: 0; padding: 20px 32px; z-index: 10;">
+        <div class="fc-review-header" style="position: absolute; top: 0; left: 0; right: 0; padding: 20px 32px; z-index: 10;">
             <div>
                 <div class="fc-review-title">Quiz Arena 🏆</div>
                 <div class="fc-review-meta" id="quizMeta">Test your limits</div>
@@ -571,8 +581,7 @@
                 <div class="quiz-config-grid">
                     <div class="fc-form-group" style="grid-column: span 2;">
                         <label class="fc-label">Focus Topic</label>
-                        <input class="fc-input" id="quizTopic" type="text"
-                            placeholder="e.g., Computer Networks, Thermodynamics, or leave blank for 'My Note'">
+                        <input class="fc-input" id="quizTopic" type="text" placeholder="e.g., Computer Networks, Thermodynamics, or leave blank for 'My Note'">
                     </div>
 
                     <div class="fc-form-group">
@@ -604,8 +613,7 @@
                     </div>
                 </div>
 
-                <button class="login-btn fluid-gradient" id="generateQuizBtn"
-                    style="width: 100%; margin-top: 35px; padding: 18px; font-size: 1.15rem;">
+                <button class="login-btn fluid-gradient" id="generateQuizBtn" style="width: 100%; margin-top: 35px; padding: 18px; font-size: 1.15rem;">
                     Enter The Arena <i class="fa-solid fa-arrow-right" style="margin-left: 8px;"></i>
                 </button>
             </div>
@@ -615,8 +623,7 @@
             <div id="quizActive" style="max-width: 800px; margin: 0 auto; width: 100%;">
 
                 <div class="quiz-active-header">
-                    <div style="font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;"
-                        id="quizActiveTopic">Topic Name</div>
+                    <div style="font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;" id="quizActiveTopic">Topic Name</div>
                     <div class="quiz-timer safe" id="quizTimerDisplay">
                         <i class="fa-regular fa-clock"></i> <span id="quizTimeText">--:--</span>
                     </div>
@@ -624,32 +631,40 @@
 
                 <div id="quizQuestionsContainer" style="display: flex; flex-direction: column; gap: 30px;">
                 </div>
-                <button id="submitQuizBtn" class="fc-btn fc-btn-primary"
-                    style="margin-top: 40px; width: 100%; justify-content: center; padding: 15px; font-size: 1.1rem; box-shadow: 0 10px 20px rgba(129, 140, 248, 0.3);">
+                <button id="submitQuizBtn" class="fc-btn fc-btn-primary" style="margin-top: 40px; width: 100%; justify-content: center; padding: 15px; font-size: 1.1rem; box-shadow: 0 10px 20px rgba(129, 140, 248, 0.3);">
                     Submit for Grading
                 </button>
             </div>
 
             <div id="quizResults" class="hidden" style="max-width: 800px; margin: 0 auto; width: 100%;">
-                <div class="fc-card"
-                    style="text-align: center; margin-bottom: 30px; padding: 40px; border: 2px solid var(--primary); box-shadow: 0 0 40px rgba(129, 140, 248, 0.2);">
-                    <div
-                        style="font-size: 1rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 2px;">
+                <div class="fc-card" style="text-align: center; margin-bottom: 30px; padding: 40px; border: 2px solid var(--primary); box-shadow: 0 0 40px rgba(129, 140, 248, 0.2);">
+                    <div style="font-size: 1rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 2px;">
                         Final Score</div>
-                    <div id="quizScoreDisplay"
-                        style="font-size: 5rem; font-weight: 800; color: var(--primary); text-shadow: 0 0 20px rgba(129, 140, 248, 0.5);">
+                    <div id="quizScoreDisplay" style="font-size: 5rem; font-weight: 800; color: var(--primary); text-shadow: 0 0 20px rgba(129, 140, 248, 0.5);">
                         0%</div>
-                    <div id="quizTimeTakenDisplay"
-                        style="color: var(--text-muted); font-size: 0.9rem; margin-top: 10px;"></div>
+                    <div id="quizTimeTakenDisplay" style="color: var(--text-muted); font-size: 0.9rem; margin-top: 10px;"></div>
                 </div>
                 <div id="quizFeedbackContainer" style="display: flex; flex-direction: column; gap: 20px;">
                 </div>
-                <button id="playAgainQuizBtn" class="fc-btn fc-btn-ghost"
-                    style="margin-top: 30px; width: 100%; justify-content: center; padding: 15px;">
+                <button id="playAgainQuizBtn" class="fc-btn fc-btn-ghost" style="margin-top: 30px; width: 100%; justify-content: center; padding: 15px;">
                     Return to Lobby
                 </button>
             </div>
         </div>
+    </div>
+
+    <!-- ==================== KNOWLEDGE GRAPH ==================== -->
+    <div id="graphScreen" class="fc-fullscreen hidden" style="z-index: 9500; background: var(--bg-app); overflow: hidden;">
+        <div class="fc-review-header" style="position: absolute; top: 0; left: 0; right: 0; padding: 20px 32px; z-index: 10; background: linear-gradient(to bottom, rgba(15,23,42,0.9), transparent);">
+            <div>
+                <div class="fc-review-title" style="text-shadow: 0 0 20px var(--primary);">Knowledge Graph 🕸️</div>
+                <div class="fc-review-meta" id="graphMeta">A visual network of your saved concepts.</div>
+            </div>
+            <button class="fc-btn fc-btn-ghost" id="closeGraphBtn">✕ Close Graph</button>
+        </div>
+        
+        <!-- The Physics Canvas -->
+        <canvas id="knowledgeGraphCanvas" style="display: block; width: 100%; height: 100%; cursor: grab;"></canvas>
     </div>
 
     <div id="toast" class="toast">Action Complete</div>
