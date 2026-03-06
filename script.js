@@ -336,14 +336,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // AUTO-MIND MAPPER (MERMAID.JS)
     // ==========================================
     async function renderMermaidDiagrams() {
-        // Look for all code blocks in the output
         const blocks = aiOutput.querySelectorAll('pre code');
         let foundDiagram = false;
 
         blocks.forEach(block => {
             const text = block.textContent.trim();
 
-            // Aggressively catch mermaid code even if the AI forgot the specific markdown tag
             if (block.className.includes('language-mermaid') ||
                 text.startsWith('graph ') ||
                 text.startsWith('flowchart ') ||
@@ -364,8 +362,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const mermaidDiv = document.createElement('div');
                 mermaidDiv.className = 'mermaid';
-
-                // Clean up any weird markdown formatting the AI might have hallucinated
                 mermaidDiv.textContent = text.replace(/```mermaid/g, '').replace(/```/g, '').trim();
 
                 wrapper.appendChild(mermaidDiv);
@@ -378,7 +374,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (typeof mermaid === 'undefined') {
                     return showToast("Diagram engine loading...");
                 }
-                // Force a fresh initialization and render using the dark theme
                 mermaid.initialize({ startOnLoad: false, theme: 'dark' });
                 await mermaid.run({ querySelector: '.mermaid', suppressErrors: true });
             } catch (e) {
@@ -400,7 +395,6 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast("Drawing diagram...");
 
         try {
-            // A much stricter prompt to force standard flowchart logic
             const systemPrompt = "Convert the following text into a visual Mermaid.js flowchart. Use 'flowchart TD'. Use clean, simple syntax without parenthesis inside node text. Return ONLY the raw code block starting with ```mermaid. No explanation.";
 
             const res = await apiFetch(`${API_BASE}/generate`, {
@@ -409,20 +403,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({
                     system_prompt: systemPrompt,
                     prompt: currentRawResponse.substring(0, 3000),
-                    temperature: 0.1 // Strict temperature to prevent AI hallucinations
+                    temperature: 0.1 
                 })
             });
 
             if (!res.ok) throw new Error("Backend Error");
             const data = await res.json();
 
-            // Append diagram safely
             currentRawResponse += "\n\n### Visual Diagram 🗺️\n" + data.response;
 
             await streamText(aiOutput, currentRawResponse, () => {
                 if (window.renderMathInElement) renderMathInElement(aiOutput, { delimiters: [{ left: "$$", right: "$$", display: true }, { left: "$", right: "$", display: false }] });
                 enableLiveCode();
-                renderMermaidDiagrams(); // Call our upgraded render function!
+                renderMermaidDiagrams();
             });
 
         } catch (err) {
@@ -489,7 +482,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await streamText(aiOutput, data.response, () => {
                 if (window.renderMathInElement) renderMathInElement(aiOutput, { delimiters: [{ left: "$$", right: "$$", display: true }, { left: "$", right: "$", display: false }] });
                 enableLiveCode();
-                renderMermaidDiagrams(); // Auto-render if AI generated mermaid code
+                renderMermaidDiagrams();
             });
 
             await loadNotes(); showToast("Complete");
@@ -799,13 +792,11 @@ document.addEventListener('DOMContentLoaded', () => {
             el('fcTopic').value = '';
             el('fcTopicError').classList.add('hidden');
             el('fcTopic').classList.remove('fc-input-error');
-            // FIX: Added #fcStepConfig so it doesn't mess with the Quiz Arena buttons!
             document.querySelectorAll('#fcStepConfig .fc-preset-btn').forEach(b => b.classList.toggle('fc-selected', b.dataset.val === '10'));
             document.querySelectorAll('#fcDiffRow .fc-pill-btn').forEach(b => b.classList.toggle('fc-pill-selected', b.dataset.val === 'Intermediate'));
             document.querySelectorAll('#fcTypeRow .fc-pill-btn').forEach(b => b.classList.toggle('fc-pill-selected', b.dataset.val === 'Mixed'));
         }
 
-        // FIX: Scoped click listener to Flashcard setup only
         document.querySelectorAll('#fcStepConfig .fc-preset-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('#fcStepConfig .fc-preset-btn').forEach(b => b.classList.remove('fc-selected'));
@@ -838,7 +829,6 @@ document.addEventListener('DOMContentLoaded', () => {
         el('fcBackBtn').addEventListener('click', () => fcShowStep('fcStepConfig'));
 
         async function fcGenerate() {
-            // FIX: Ensure it only reads the Flashcard preset button, not the Quiz Arena one
             const selectedPreset = document.querySelector('#fcStepConfig .fc-preset-btn.fc-selected');
             if (selectedPreset) fcConfig.count = parseInt(selectedPreset.dataset.val);
 
@@ -1243,6 +1233,15 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (phaseId === 'quizActive') {
                 el('quizExamWrap').style.display = 'block';
                 el('quizActive').classList.remove('hidden');
+                
+                // ANTI-CLASH FIX: Force the header to behave properly right when it shows up
+                const header = document.querySelector('.quiz-active-header');
+                if (header) {
+                    header.style.position = 'relative'; // Stops it from floating over text
+                    header.style.background = 'var(--bg-panel)'; // Makes it solid
+                    header.style.top = '0';
+                    header.style.zIndex = '2000';
+                }
             } else if (phaseId === 'quizResults') {
                 el('quizExamWrap').style.display = 'block';
                 el('quizResults').classList.remove('hidden');
@@ -1404,7 +1403,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const feedbackCard = document.createElement('div');
                 feedbackCard.className = `quiz-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
 
-                const userAnswerText = userAnswers[i] !== null ? q.options[userAnswers[i]] : "<span style='color:#ef4444'>Skipped (Out of Time)</span>";
+                // FIX: Handle unanswered questions gracefully without crashing
+                const userAnswerText = userAnswers[i] !== null ? q.options[userAnswers[i]] : "<span style='color:#ef4444; font-weight: bold;'>Skipped (No Answer)</span>";
 
                 feedbackCard.innerHTML = `
                     <strong>${i + 1}. ${q.question}</strong><br>
@@ -1426,7 +1426,7 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (percentage >= 50) el('quizScoreDisplay').style.color = '#f59e0b';
             else el('quizScoreDisplay').style.color = '#ef4444';
 
-           if (quizConfig.timeLimit > 0) {
+            if (quizConfig.timeLimit > 0) {
                 const timeTaken = totalTime - timeRemaining;
                 el('quizTimeTakenDisplay').textContent = `Time taken: ${formatTime(timeTaken)}`;
             } else {
@@ -1435,15 +1435,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
             showQuizPhase('quizResults');
             
-            // FIX: Scroll the specific container back to the top, not the window!
-            el('quizExamWrap').scrollTop = 0; 
+            // FIX: Snap the scroll view back to the top of the container, NOT the window!
+            const examWrap = el('quizExamWrap');
+            if (examWrap) examWrap.scrollTop = 0;
+            const reviewWrap = document.querySelector('#quizScreen .fc-review-wrap');
+            if (reviewWrap) reviewWrap.scrollTop = 0; 
         }
 
         el('submitQuizBtn')?.addEventListener('click', () => {
-            // FIX: Use our custom Toast instead of browser confirm() which gets blocked
-            if (userAnswers.includes(null)) {
-                showToast("⚠️ Please answer all questions before submitting!");
-                return;
+            // FIX: Remove browser confirm() completely. Just show a toast and grade it!
+            const missedCount = userAnswers.filter(a => a === null).length;
+            if (missedCount > 0) {
+                showToast(`⚠️ Submitting with ${missedCount} unanswered questions!`);
             }
             gradeQuiz();
         });
