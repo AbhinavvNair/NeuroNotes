@@ -101,31 +101,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const logoutBtn = $('logoutBtn');
 
     // prevent dropdown from closing
-    logoutBtn.addEventListener('click', e => e.stopPropagation());
+    logoutBtn?.addEventListener('click', e => e.stopPropagation());
 
     // open modal
-    logoutBtn.addEventListener('click', () => {
+    logoutBtn?.addEventListener('click', () => {
         logoutOverlay.classList.add('show');
         document.activeElement.blur(); 
     });
 
     // close modal (cancel)
-    cancelLogoutBtn.addEventListener('click', () => {
+    cancelLogoutBtn?.addEventListener('click', () => {
         logoutOverlay.classList.remove('show');
     });
 
     // close when clicking outside
-    logoutOverlay.addEventListener('click', (e) => {
+    logoutOverlay?.addEventListener('click', (e) => {
         if (e.target === logoutOverlay) logoutOverlay.classList.remove('show');
     });
 
     // close on ESC
     document.addEventListener('keydown', (e) => {
-        if (e.key === "Escape") logoutOverlay.classList.remove('show');
+        if (e.key === "Escape") logoutOverlay?.classList.remove('show');
     });
 
     // confirm logout
-    confirmLogoutBtn.addEventListener('click', () => {
+    confirmLogoutBtn?.addEventListener('click', () => {
         localStorage.removeItem("access_token");
         sessionStorage.removeItem("access_token");
         location.reload();
@@ -433,6 +433,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.disabled = false;
         }
     });
+
     // ==========================================
     // TYPEWRITER STREAMING ENGINE
     // ==========================================
@@ -772,6 +773,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     $('sendChatBtn')?.addEventListener('click', handleChatSend);
     chatInput?.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleChatSend(); });
+
     // ==========================================
     // FLASHCARD FEATURE
     // ==========================================
@@ -797,14 +799,16 @@ document.addEventListener('DOMContentLoaded', () => {
             el('fcTopic').value = '';
             el('fcTopicError').classList.add('hidden');
             el('fcTopic').classList.remove('fc-input-error');
-            document.querySelectorAll('.fc-preset-btn').forEach(b => b.classList.toggle('fc-selected', b.dataset.val === '10'));
+            // FIX: Added #fcStepConfig so it doesn't mess with the Quiz Arena buttons!
+            document.querySelectorAll('#fcStepConfig .fc-preset-btn').forEach(b => b.classList.toggle('fc-selected', b.dataset.val === '10'));
             document.querySelectorAll('#fcDiffRow .fc-pill-btn').forEach(b => b.classList.toggle('fc-pill-selected', b.dataset.val === 'Intermediate'));
             document.querySelectorAll('#fcTypeRow .fc-pill-btn').forEach(b => b.classList.toggle('fc-pill-selected', b.dataset.val === 'Mixed'));
         }
 
-        document.querySelectorAll('.fc-preset-btn').forEach(btn => {
+        // FIX: Scoped click listener to Flashcard setup only
+        document.querySelectorAll('#fcStepConfig .fc-preset-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                document.querySelectorAll('.fc-preset-btn').forEach(b => b.classList.remove('fc-selected'));
+                document.querySelectorAll('#fcStepConfig .fc-preset-btn').forEach(b => b.classList.remove('fc-selected'));
                 btn.classList.add('fc-selected');
                 fcConfig.count = parseInt(btn.dataset.val);
             });
@@ -834,7 +838,8 @@ document.addEventListener('DOMContentLoaded', () => {
         el('fcBackBtn').addEventListener('click', () => fcShowStep('fcStepConfig'));
 
         async function fcGenerate() {
-            const selectedPreset = document.querySelector('.fc-preset-btn.fc-selected');
+            // FIX: Ensure it only reads the Flashcard preset button, not the Quiz Arena one
+            const selectedPreset = document.querySelector('#fcStepConfig .fc-preset-btn.fc-selected');
             if (selectedPreset) fcConfig.count = parseInt(selectedPreset.dataset.val);
 
             fcConfig.topic = el('fcTopic').value.trim();
