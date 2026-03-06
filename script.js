@@ -93,44 +93,36 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-
     // === LOGOUT CONFIRMATION MODAL ===
     const logoutOverlay = $('logoutConfirmOverlay');
     const cancelLogoutBtn = $('cancelLogoutBtn');
     const confirmLogoutBtn = $('confirmLogoutBtn');
     const logoutBtn = $('logoutBtn');
 
-    // prevent dropdown from closing
     logoutBtn?.addEventListener('click', e => e.stopPropagation());
 
-    // open modal
     logoutBtn?.addEventListener('click', () => {
         logoutOverlay.classList.add('show');
         document.activeElement.blur(); 
     });
 
-    // close modal (cancel)
     cancelLogoutBtn?.addEventListener('click', () => {
         logoutOverlay.classList.remove('show');
     });
 
-    // close when clicking outside
     logoutOverlay?.addEventListener('click', (e) => {
         if (e.target === logoutOverlay) logoutOverlay.classList.remove('show');
     });
 
-    // close on ESC
     document.addEventListener('keydown', (e) => {
         if (e.key === "Escape") logoutOverlay?.classList.remove('show');
     });
 
-    // confirm logout
     confirmLogoutBtn?.addEventListener('click', () => {
         localStorage.removeItem("access_token");
         sessionStorage.removeItem("access_token");
         location.reload();
     });
-
 
     // --- API & AUTH ---
     const forceLogout = (msg = "Session expired. Please login again.") => {
@@ -539,24 +531,78 @@ document.addEventListener('DOMContentLoaded', () => {
         pre.after(out);
     };
 
-    // --- AUDIO, NOISE & GOD MODE ---
+    // ==========================================
+    // PROPER PODCAST VOICES (Smart Router)
+    // ==========================================
     let speechParams = { speeds: [1, 1.5, 2], index: 0, utterance: null };
+    
+    // Target 4 precise, established accents
+    const targetAccents = [
+        { id: 'en-US', label: '🇺🇸 American (US)' },
+        { id: 'en-GB', label: '🇬🇧 British (UK)' },
+        { id: 'en-AU', label: '🇦🇺 Australian (AU)' },
+        { id: 'en-IN', label: '🇮🇳 Indian (IN)' }
+    ];
+
     const populateVoices = () => {
-        const v = window.speechSynthesis.getVoices(); if (!v.length) return setTimeout(populateVoices, 200); if (!$('voiceSelect')) return; $('voiceSelect').innerHTML = '';
-        v.slice(0, 10).forEach(voice => { const opt = document.createElement('option'); opt.value = voice.name; opt.textContent = voice.name.substring(0, 25); $('voiceSelect').appendChild(opt); });
+        const voices = window.speechSynthesis.getVoices();
+        if (!voices.length) return setTimeout(populateVoices, 200);
+        if (!$('voiceSelect')) return;
+
+        $('voiceSelect').innerHTML = '';
+
+        targetAccents.forEach(accent => {
+            // Find all voices that match the language code (handling en_US and en-US variations)
+            const matches = voices.filter(v => v.lang.replace('_', '-').includes(accent.id));
+            
+            if (matches.length > 0) {
+                // Prioritize high-quality neural/premium voices provided by Google, Apple (Siri), or Microsoft
+                let bestMatch = matches.find(v => v.name.includes('Google') || v.name.includes('Premium') || v.name.includes('Natural') || v.name.includes('Siri'));
+                
+                // Fallback to standard OS voice if premium is not available
+                if (!bestMatch) bestMatch = matches[0];
+
+                const opt = document.createElement('option');
+                // Store the actual voice name as the value so we can retrieve it exactly later
+                opt.value = bestMatch.name;
+                opt.textContent = accent.label;
+                $('voiceSelect').appendChild(opt);
+            }
+        });
+
+        // Failsafe: if device somehow has zero matching English voices, provide whatever is index 0
+        if ($('voiceSelect').options.length === 0 && voices.length > 0) {
+            const opt = document.createElement('option');
+            opt.value = voices[0].name;
+            opt.textContent = '🤖 Default System Voice';
+            $('voiceSelect').appendChild(opt);
+        }
     };
-    populateVoices(); window.speechSynthesis.onvoiceschanged = populateVoices;
+    
+    populateVoices();
+    window.speechSynthesis.onvoiceschanged = populateVoices;
 
     $('playAudioBtn')?.addEventListener('click', () => {
         if (speechSynthesis.paused) { speechSynthesis.resume(); $('playAudioBtn').innerHTML = '<i class="fa-solid fa-pause"></i>'; return; }
         if (speechSynthesis.speaking) { speechSynthesis.pause(); $('playAudioBtn').innerHTML = '<i class="fa-solid fa-play"></i>'; return; }
-        const t = window.getSelection().toString() || aiOutput.innerText || userInput.value; if (!t || t.includes("Ready")) return;
-        speechSynthesis.cancel(); speechParams.utterance = new SpeechSynthesisUtterance(t);
-        const selVoice = window.speechSynthesis.getVoices().find(v => v.name === $('voiceSelect').value); if (selVoice) speechParams.utterance.voice = selVoice;
+        
+        const t = window.getSelection().toString() || aiOutput.innerText || userInput.value; 
+        if (!t || t.includes("Ready")) return;
+        
+        speechSynthesis.cancel(); 
+        speechParams.utterance = new SpeechSynthesisUtterance(t);
+        
+        // Find the exact voice object matching our dropdown selection
+        const selVoice = window.speechSynthesis.getVoices().find(v => v.name === $('voiceSelect').value); 
+        if (selVoice) speechParams.utterance.voice = selVoice;
+        
         speechParams.utterance.rate = speechParams.speeds[speechParams.index];
         speechParams.utterance.onend = () => $('playAudioBtn').innerHTML = '<i class="fa-solid fa-play"></i>';
-        speechSynthesis.speak(speechParams.utterance); $('playAudioBtn').innerHTML = '<i class="fa-solid fa-pause"></i>';
+        
+        speechSynthesis.speak(speechParams.utterance); 
+        $('playAudioBtn').innerHTML = '<i class="fa-solid fa-pause"></i>';
     });
+
     $('stopAudioBtn')?.addEventListener('click', () => { speechSynthesis.cancel(); $('playAudioBtn').innerHTML = '<i class="fa-solid fa-play"></i>'; });
     $('speedBtn')?.addEventListener('click', () => { speechParams.index = (speechParams.index + 1) % speechParams.speeds.length; $('speedBtn').innerText = speechParams.speeds[speechParams.index] + 'x'; });
 
@@ -781,7 +827,7 @@ document.addEventListener('DOMContentLoaded', () => {
             el(step).classList.remove('hidden');
         }
 
-        el('flashcardChip').addEventListener('click', () => {
+        el('flashcardChip')?.addEventListener('click', () => {
             fcResetConfig();
             el('fcOverlay').classList.remove('hidden');
             fcShowStep('fcStepConfig');
@@ -789,9 +835,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function fcResetConfig() {
             fcConfig = { count: 10, topic: '', difficulty: 'Intermediate', cardType: 'Mixed' };
-            el('fcTopic').value = '';
-            el('fcTopicError').classList.add('hidden');
-            el('fcTopic').classList.remove('fc-input-error');
+            if(el('fcTopic')) el('fcTopic').value = '';
+            el('fcTopicError')?.classList.add('hidden');
+            el('fcTopic')?.classList.remove('fc-input-error');
             document.querySelectorAll('#fcStepConfig .fc-preset-btn').forEach(b => b.classList.toggle('fc-selected', b.dataset.val === '10'));
             document.querySelectorAll('#fcDiffRow .fc-pill-btn').forEach(b => b.classList.toggle('fc-pill-selected', b.dataset.val === 'Intermediate'));
             document.querySelectorAll('#fcTypeRow .fc-pill-btn').forEach(b => b.classList.toggle('fc-pill-selected', b.dataset.val === 'Mixed'));
@@ -821,12 +867,12 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        el('fcCancelBtn').addEventListener('click', () => el('fcOverlay').classList.add('hidden'));
+        el('fcCancelBtn')?.addEventListener('click', () => el('fcOverlay').classList.add('hidden'));
 
-        el('fcGenerateBtn').addEventListener('click', fcGenerate);
-        el('fcTopic').addEventListener('keydown', e => { if (e.key === 'Enter') fcGenerate(); });
-        el('fcRetryBtn').addEventListener('click', fcGenerate);
-        el('fcBackBtn').addEventListener('click', () => fcShowStep('fcStepConfig'));
+        el('fcGenerateBtn')?.addEventListener('click', fcGenerate);
+        el('fcTopic')?.addEventListener('keydown', e => { if (e.key === 'Enter') fcGenerate(); });
+        el('fcRetryBtn')?.addEventListener('click', fcGenerate);
+        el('fcBackBtn')?.addEventListener('click', () => fcShowStep('fcStepConfig'));
 
         async function fcGenerate() {
             const selectedPreset = document.querySelector('#fcStepConfig .fc-preset-btn.fc-selected');
@@ -928,16 +974,16 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        el('fcRegenBtn').addEventListener('click', () => {
+        el('fcRegenBtn')?.addEventListener('click', () => {
             el('fcReviewScreen').classList.add('hidden');
             el('fcOverlay').classList.remove('hidden');
             fcShowStep('fcStepLoading');
             fcGenerate();
         });
 
-        el('fcStartBtn').addEventListener('click', () => fcStartMode(fcCards));
+        el('fcStartBtn')?.addEventListener('click', () => fcStartMode(fcCards));
 
-        el('fcSaveBtn').addEventListener('click', async () => {
+        el('fcSaveBtn')?.addEventListener('click', async () => {
             try {
                 const res = await apiFetch(`${API_BASE}/flashcards`, {
                     method: "POST",
@@ -955,13 +1001,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        el('fcViewSavedBtn').addEventListener('click', () => {
+        el('fcViewSavedBtn')?.addEventListener('click', () => {
             el('fcOverlay').classList.add('hidden');
             fcRenderSavedDecks();
             el('fcSavedScreen').classList.remove('hidden');
         });
 
-        el('fcSavedCloseBtn').addEventListener('click', () => {
+        el('fcSavedCloseBtn')?.addEventListener('click', () => {
             el('fcSavedScreen').classList.add('hidden');
             el('fcOverlay').classList.remove('hidden');
             fcShowStep('fcStepConfig');
@@ -1060,7 +1106,7 @@ document.addEventListener('DOMContentLoaded', () => {
             el('fcMobileNext').textContent = fcCardIdx === total - 1 ? 'Finish' : 'Next →';
         }
 
-        el('fcShowBtn').addEventListener('click', () => {
+        el('fcShowBtn')?.addEventListener('click', () => {
             fcRevealed = true;
             const card = fcActiveCards[fcCardIdx];
             el('fcShowBtn').classList.add('hidden');
@@ -1073,7 +1119,7 @@ document.addEventListener('DOMContentLoaded', () => {
             el('fcHintSection').style.display = card.hint ? 'block' : 'none';
         });
 
-        el('fcMobileShowBtn').addEventListener('click', () => {
+        el('fcMobileShowBtn')?.addEventListener('click', () => {
             const card = fcActiveCards[fcCardIdx];
             el('fcMobileShowBtn').classList.add('hidden');
             el('fcMobileAnswer').textContent = card.answer;
@@ -1097,11 +1143,11 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        el('fcPrevBtn').addEventListener('click', () => { if (fcCardIdx > 0) { fcCardIdx--; fcRenderCard(); } });
-        el('fcNextBtn').addEventListener('click', fcNext);
+        el('fcPrevBtn')?.addEventListener('click', () => { if (fcCardIdx > 0) { fcCardIdx--; fcRenderCard(); } });
+        el('fcNextBtn')?.addEventListener('click', fcNext);
 
-        el('fcMobilePrev').addEventListener('click', () => { if (fcCardIdx > 0) { fcCardIdx--; fcRenderCard(); } });
-        el('fcMobileNext').addEventListener('click', fcNext);
+        el('fcMobilePrev')?.addEventListener('click', () => { if (fcCardIdx > 0) { fcCardIdx--; fcRenderCard(); } });
+        el('fcMobileNext')?.addEventListener('click', fcNext);
 
         function fcNext() {
             if (fcCardIdx < fcActiveCards.length - 1) {
@@ -1112,7 +1158,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        el('fcExitBtn').addEventListener('click', () => fcAskExit());
+        el('fcExitBtn')?.addEventListener('click', () => fcAskExit());
 
         function fcAskExit() { el('fcExitOverlay').classList.remove('hidden'); }
         window._fcAskExit = fcAskExit;
@@ -1126,8 +1172,8 @@ document.addEventListener('DOMContentLoaded', () => {
             fcRenderCardList();
             document.getElementById('fcReviewMeta').textContent = `${cards.length} cards · ${topic} · ${difficulty}`;
         };
-        el('fcExitCancelBtn').addEventListener('click', () => el('fcExitOverlay').classList.add('hidden'));
-        el('fcExitConfirmBtn').addEventListener('click', () => {
+        el('fcExitCancelBtn')?.addEventListener('click', () => el('fcExitOverlay').classList.add('hidden'));
+        el('fcExitConfirmBtn')?.addEventListener('click', () => {
             el('fcExitOverlay').classList.add('hidden');
             el('fcModeScreen').classList.add('hidden');
             el('fcReviewScreen').classList.add('hidden');
@@ -1179,18 +1225,18 @@ document.addEventListener('DOMContentLoaded', () => {
             el('fcSummaryScreen').classList.remove('hidden');
         }
 
-        el('fcReviewMissedBtn').addEventListener('click', () => {
+        el('fcReviewMissedBtn')?.addEventListener('click', () => {
             const missed = fcCards.filter((_, i) => fcRatings[i] === 'missed');
             el('fcSummaryScreen').classList.add('hidden');
             fcStartMode(missed);
         });
 
-        el('fcRestartBtn').addEventListener('click', () => {
+        el('fcRestartBtn')?.addEventListener('click', () => {
             el('fcSummaryScreen').classList.add('hidden');
             fcStartMode(fcCards);
         });
 
-        el('fcSummaryExitBtn').addEventListener('click', () => {
+        el('fcSummaryExitBtn')?.addEventListener('click', () => {
             el('fcSummaryScreen').classList.add('hidden');
         });
 
@@ -1225,8 +1271,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // UI Routing
         function showQuizPhase(phaseId) {
-            ['quizSetupWrap', 'quizExamWrap'].forEach(id => el(id).style.display = 'none');
-            ['quizActive', 'quizResults'].forEach(id => el(id).classList.add('hidden'));
+            ['quizSetupWrap', 'quizExamWrap'].forEach(id => {
+                if(el(id)) el(id).style.display = 'none';
+            });
+            ['quizActive', 'quizResults'].forEach(id => {
+                if(el(id)) el(id).classList.add('hidden');
+            });
 
             if (phaseId === 'quizSetup') {
                 el('quizSetupWrap').style.display = 'flex';
