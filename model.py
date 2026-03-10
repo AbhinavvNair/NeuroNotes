@@ -124,3 +124,21 @@ class EduLLM(nn.Module):
             # append sampled index to the running sequence
             idx = torch.cat((idx, idx_next), dim=1) 
         return idx
+    
+    def configure_optimizers(self, weight_decay, learning_rate, betas):
+        # separate out all parameters to those that will and won't experience regularizing weight decay
+        decay = set()
+        no_decay = set()
+        for name, param in self.named_parameters():
+            if name.endswith('bias') or name.endswith('ln_f.weight'):
+                no_decay.add(name)
+            else:
+                decay.add(name)
+        # create the pytorch optimizer object
+        param_dict = {name: param for name, param in self.named_parameters()}
+        optim_groups = [
+            {"params": [param_dict[name] for name in sorted(list(decay))], "weight_decay": weight_decay},
+            {"params": [param_dict[name] for name in sorted(list(no_decay))], "weight_decay": 0.0},
+        ]
+        optimizer = torch.optim.AdamW(optim_groups, lr=learning_rate, betas=betas)
+        return optimizer
