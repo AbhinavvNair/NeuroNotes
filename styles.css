@@ -194,19 +194,23 @@ pre code { display: block; padding: 20px; overflow-x: auto; font-family: 'Fira C
 .palette-footer { background: var(--bg-app); padding: 8px 20px; font-size: 0.75rem; color: var(--text-secondary); border-top: 1px solid var(--border); display: flex; gap: 15px; }
 
 /* Settings */
-.settings-card{width:500px;padding:0!important;}
-.settings-header{display:flex;justify-content:space-between;padding:20px 25px;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.2);}
-.settings-header h2{font-size:1.25rem;}
-.settings-body{padding:25px;display:flex;flex-direction:column;gap:20px;}
-.settings-footer{padding:20px 25px;border-top:1px solid var(--border);background:rgba(0,0,0,0.2);}
-.setting-group{display:flex;flex-direction:column;gap:8px;text-align:left;}
-.setting-group label{font-size:.8rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;}
-.setting-group-spaced{margin-top:25px;}
-.setting-hint{color:var(--text-muted);font-size:.75rem;margin-top:5px;display:block;}
+.settings-card{width:520px;max-width:92vw;padding:0!important;box-shadow:0 24px 60px rgba(0,0,0,0.55);border:1px solid rgba(129,140,248,0.2);}
+.settings-header{display:flex;justify-content:space-between;padding:20px 25px;border-bottom:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.25);backdrop-filter:blur(12px);}
+.settings-header h2{font-size:1.3rem;letter-spacing:0.6px;}
+.settings-body{padding:25px 25px 20px;display:flex;flex-direction:column;gap:20px;}
+.settings-footer{padding:18px 25px;border-top:1px solid rgba(255,255,255,0.08);background:rgba(0,0,0,0.15);display:flex;justify-content:flex-end;gap:10px;}
+.setting-group{display:flex;flex-direction:column;gap:10px;text-align:left;}
+.setting-group label{font-size:.75rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:1px;}
+.setting-group-spaced{margin-top:28px;}
+.setting-hint{color:var(--text-muted);font-size:.75rem;margin-top:6px;display:block;}
 .setting-submit-btn{margin-top:15px;}
-.setting-group textarea,.setting-group input[type=password],.setting-group input[type=text]{width:100%;padding:14px 15px;margin-top:8px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.3);color:var(--text-main);font-family:inherit;font-size:.95rem;outline:none;transition:.3s;}
-.setting-group textarea:focus,.setting-group input[type=password]:focus,.setting-group input[type=text]:focus{border-color:var(--primary);background:rgba(0,0,0,0.5);box-shadow:0 0 0 4px rgba(129,140,248,0.15);}
-
+.setting-group textarea,.setting-group input[type=password],.setting-group input[type=text]{width:100%;padding:13px 15px;margin-top:8px;border-radius:14px;border:1px solid rgba(255,255,255,0.12);background:rgba(0,0,0,0.25);color:var(--text-main);font-family:inherit;font-size:.95rem;outline:none;transition:all .25s ease;}
+.setting-group textarea{min-height:96px;}
+.setting-group textarea:focus,.setting-group input[type=password]:focus,.setting-group input[type=text]:focus{border-color:var(--primary);background:rgba(0,0,0,0.45);box-shadow:0 0 0 4px rgba(129,140,248,0.16);}
+.password-row{position:relative;}
+.password-row input{padding-right:50px;}
+.password-toggle{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);cursor:pointer;transition:color .2s;}
+.password-toggle:hover{color:var(--primary);}
 /* --- MISC & ANIMATIONS --- */
 .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-secondary); gap: 1rem; }
 .empty-state i { font-size: 3rem; color: var(--primary); opacity: 0.8; }
@@ -271,6 +275,13 @@ pre code { display: block; padding: 20px; overflow-x: auto; font-family: 'Fira C
 .fc-input{width:100%;padding:11px 14px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text-main);font-size:.9rem;outline:none;transition:border-color .2s;}
 .fc-input:focus{border-color:var(--primary);}
 .fc-input.fc-input-error{border-color:#ef4444;}
+
+/* Custom select styling for smooth arrow animation */
+.select-wrapper{position:relative;display:inline-flex;align-items:center;width:100%;}
+.select-wrapper select{appearance:none;-webkit-appearance:none;-moz-appearance:none;width:100%;padding:12px 40px 12px 14px;height:44px;line-height:20px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text-main);font-size:.9rem;outline:none;transition:border-color .2s;}
+.select-wrapper select:focus{border-color:var(--primary);}
+.select-arrow{position:absolute;top:50%;right:12px;transform:translateY(-50%);display:flex;align-items:center;justify-content:center;pointer-events:none;color:var(--text-muted);transition:transform .25s ease, color .25s ease;}
+.select-wrapper:focus-within .select-arrow{transform:translateY(-50%) rotate(180deg);color:var(--primary);}
 .fc-error{font-size:.75rem;color:#ef4444;}
 .fc-error.hidden{display:none!important;}
 .fc-preset-row{display:flex;gap:8px;}

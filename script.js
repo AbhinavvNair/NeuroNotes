@@ -93,6 +93,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Password toggle (eye icon)
+    document.querySelectorAll('.password-toggle').forEach(t => {
+        t.addEventListener('click', () => {
+            const target = document.getElementById(t.dataset.target);
+            if (!target) return;
+            const isPassword = target.type === 'password';
+            target.type = isPassword ? 'text' : 'password';
+            t.innerHTML = `<i class="fa-solid fa-eye${isPassword ? '-slash' : ''}"></i>`;
+        });
+    });
+
     // === LOGOUT CONFIRMATION MODAL ===
     const logoutOverlay = $('logoutConfirmOverlay');
     const cancelLogoutBtn = $('cancelLogoutBtn');
