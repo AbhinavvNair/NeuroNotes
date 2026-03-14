@@ -93,6 +93,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // When clicking away, blur the dropdown so the arrow resets
+    document.addEventListener('click', (event) => {
+        const wrapper = document.querySelector('.select-wrapper');
+        if (!wrapper || !presetSelect) return;
+        if (!event.composedPath().includes(wrapper)) {
+            presetSelect.blur();
+        }
+    });
+
     // Password toggle (eye icon)
     document.querySelectorAll('.password-toggle').forEach(t => {
         t.addEventListener('click', () => {
