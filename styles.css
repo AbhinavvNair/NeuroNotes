@@ -12,8 +12,8 @@ button,input,select,textarea,a,.panel,.sidebar,.nav-btn,.list-item,.chip,.action
 .app-container{display:flex;width:100%;height:100%;}
 .hidden{display:none!important;}
 
-/* --- PREMIUM LOGIN --- */
-.login-container { position: fixed; inset: 0; background: linear-gradient(-45deg, #050505, #0a0514, #050a14, #000); background-size: 400% 400%; animation: gradientBG 15s ease infinite; display: flex; align-items: center; justify-content: center; z-index: 9999; overflow: hidden; }
+/* --- PREMIUM LOGIN (ENTERPRISE SPLIT-SCREEN) --- */
+.login-container { position: fixed; inset: 0; background: linear-gradient(-45deg, #050505, #0a0514, #050a14, #000); background-size: 400% 400%; animation: gradientBG 15s ease infinite; display: flex; flex-direction: row; z-index: 9999; overflow: hidden; }
 
 /* AI Tech Grid Background */
 .login-container::after { content: ''; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px); background-size: 40px 40px; z-index: 0; pointer-events: none; }
@@ -26,8 +26,15 @@ button,input,select,textarea,a,.panel,.sidebar,.nav-btn,.list-item,.chip,.action
 
 @keyframes floatBlob { 0% { transform: scale(1) translate(0, 0); } 33% { transform: scale(1.1) translate(50px, -50px); } 66% { transform: scale(0.9) translate(-30px, 30px); } 100% { transform: scale(1.05) translate(-50px, -20px); } }
 
-/* UPGRADED: Cinematic Glass Card with Animated Border Aura */
-.glass-panel { background: rgba(10, 15, 30, 0.6); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.08); padding: 50px 45px; border-radius: 28px; box-shadow: 0 40px 80px -15px rgba(0,0,0,0.8), inset 0 1px 2px rgba(255,255,255,0.1); text-align: center; width: 400px; position: relative; z-index: 1; transform: translateY(0); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+/* === SPLIT LAYOUT === */
+.login-left { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; z-index: 10; padding: 20px; }
+.login-right { flex: 1.2; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; z-index: 10; background: linear-gradient(to right, rgba(0,0,0,0.4), transparent); border-left: 1px solid rgba(255,255,255,0.05); backdrop-filter: blur(10px); padding: 40px; overflow: hidden; }
+
+/* Hide right side on mobile automatically */
+@media (max-width: 900px) { .login-right { display: none; } }
+
+/* Cinematic Glass Card */
+.glass-panel { background: rgba(10, 15, 30, 0.6); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.08); padding: 50px 45px; border-radius: 28px; box-shadow: 0 40px 80px -15px rgba(0,0,0,0.8), inset 0 1px 2px rgba(255,255,255,0.1); text-align: center; width: 100%; max-width: 420px; position: relative; transform: translateY(0); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 .glass-panel:hover { transform: translateY(-5px); }
 
 /* The glowing aura animation behind the card */
@@ -50,16 +57,8 @@ button,input,select,textarea,a,.panel,.sidebar,.nav-btn,.list-item,.chip,.action
 .input-group input:focus { border-color: var(--primary); background: rgba(0,0,0,0.6); box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.15), inset 0 2px 6px rgba(0,0,0,0.3); transform: translateY(-2px); }
 .input-group input:focus + i { color: var(--primary); transform: translateY(-50%) scale(1.1); }
 
-/* Stop Browser Autofill */
-.input-group input:-webkit-autofill,
-.input-group input:-webkit-autofill:hover, 
-.input-group input:-webkit-autofill:focus, 
-.input-group input:-webkit-autofill:active {
-    -webkit-box-shadow: 0 0 0 30px #080c17 inset !important;
-    -webkit-text-fill-color: white !important;
-    transition: background-color 5000s ease-in-out 0s;
-    border: 1px solid rgba(255,255,255,0.1) !important;
-}
+/* Stop Browser Autofill Flash */
+.input-group input:-webkit-autofill, .input-group input:-webkit-autofill:hover, .input-group input:-webkit-autofill:focus, .input-group input:-webkit-autofill:active { -webkit-box-shadow: 0 0 0 30px #080c17 inset !important; -webkit-text-fill-color: white !important; transition: background-color 5000s ease-in-out 0s; border: 1px solid rgba(255,255,255,0.1) !important; }
 
 /* 3D Tactile Button */
 .login-btn.fluid-gradient { width: 100%; padding: 16px; background-image: linear-gradient(to right, #6366f1, #a855f7, #ec4899, #6366f1); background-size: 300% 100%; color: white; border: none; border-radius: 16px; font-size: 1.1rem; font-weight: 700; cursor: pointer; margin-top: 15px; box-shadow: 0 8px 25px rgba(168, 85, 247, 0.4), inset 0 2px 2px rgba(255,255,255,0.2); transition: all 0.4s ease; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
@@ -68,10 +67,39 @@ button,input,select,textarea,a,.panel,.sidebar,.nav-btn,.list-item,.chip,.action
 
 .login-msg { color: #ef4444; font-size: 0.95rem; margin-top: 15px; font-weight: 500; background: rgba(239, 68, 68, 0.1); padding: 10px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.3); }
 
-/* Login footer */
 .login-footer-row{display:flex;justify-content:center;margin-top:15px;}
 .toggle-auth-btn{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.9rem;font-weight: 500; font-family:inherit; transition: color 0.2s;}
 .toggle-auth-btn:hover{color:#fff; text-decoration:none;}
+
+/* === RIGHT SIDE SHOWCASE ELEMENTS === */
+.showcase-container { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 25px; position: relative; }
+.showcase-header { margin-bottom: 10px; }
+.showcase-header .badge { display: inline-block; padding: 6px 14px; background: rgba(129, 140, 248, 0.15); border: 1px solid var(--primary); color: var(--primary); border-radius: 20px; font-size: 0.8rem; font-weight: 700; margin-bottom: 15px; letter-spacing: 1px; text-transform: uppercase; }
+.showcase-header h1 { font-size: 2.8rem; font-weight: 800; line-height: 1.1; margin-bottom: 15px; color: white; text-shadow: 0 0 30px rgba(255,255,255,0.2); }
+.showcase-header p { font-size: 1.1rem; color: var(--text-muted); line-height: 1.6; }
+
+.floating-ui { background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); position: relative; animation: floatUI 6s ease-in-out infinite; }
+.floating-ui.ui-card-1 { transform: rotate(-2deg); margin-left: -20px; animation-delay: 0s; }
+    /* Success Green */
+.floating-ui.ui-card-2 { transform: rotate(1deg); margin-left: 40px; animation-delay: -2s; border-color: rgba(34, 197, 94, 0.3); }
+    /* Warning/Trophy Gold */
+.floating-ui.ui-card-3 { transform: rotate(-1deg); margin-left: 10px; animation-delay: -4s; border-color: rgba(245, 158, 11, 0.3); }
+
+.ui-header { font-size: 0.9rem; font-weight: 600; color: white; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+.ui-card-1 .ui-header i { color: #c084fc; }
+.ui-card-2 .ui-header i { color: #22c55e; }
+.ui-card-3 .ui-header i { color: #f59e0b; }
+
+.ui-skeleton-line { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; margin-bottom: 10px; }
+.ui-progress-bar { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+.ui-progress-fill { height: 100%; width: 75%; background: #22c55e; border-radius: 3px; box-shadow: 0 0 10px #22c55e; }
+.ui-score { font-size: 2.5rem; font-weight: 800; color: #f59e0b; text-shadow: 0 0 20px rgba(245, 158, 11, 0.4); }
+
+@keyframes floatUI { 0%, 100% { transform: translateY(0) rotate(var(--rot, 0deg)); } 50% { transform: translateY(-15px) rotate(var(--rot, 0deg)); } }
+.ui-card-1 { --rot: -2deg; }
+.ui-card-2 { --rot: 1deg; }
+.ui-card-3 { --rot: -1deg; }
+
 
 /* --- SIDEBAR --- */
 .sidebar{width:260px;background:var(--bg-sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:24px;z-index:10;transition:margin-left .3s;overflow:hidden;}

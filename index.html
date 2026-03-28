@@ -25,43 +25,75 @@
 
 <body>
 
-    <div id="loginScreen" class="login-container">
+   <div id="loginScreen" class="login-container">
+        
         <div class="ambient-blob blob-purple"></div>
         <div class="ambient-blob blob-blue"></div>
         <div class="ambient-blob blob-indigo"></div>
 
-        <div class="login-card glass-panel">
-            <div class="login-logo floating">
-                <i class="fa-solid fa-brain"></i>
+        <div class="login-left">
+            <div class="login-card glass-panel">
+                <div class="login-logo floating">
+                    <i class="fa-solid fa-brain"></i>
+                </div>
+
+                <h2 id="authTitle">EduSummarizer</h2>
+                <p id="authSubtitle">Sign in to your AI Workspace</p>
+
+                <div class="input-group">
+                    <i class="fa-solid fa-user"></i>
+                    <input type="text" id="loginUser" placeholder="Email" autocomplete="off">
+                </div>
+
+                <div class="input-group">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" id="loginPass" placeholder="Password">
+                </div>
+
+                <div class="input-group hidden" id="confirmPasswordGroup">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" id="confirmPass" placeholder="Confirm Password">
+                </div>
+
+                <div class="login-footer-row">
+                    <button id="toggleAuthMode" class="toggle-auth-btn">Don't have an account? Register</button>
+                </div>
+
+                <button id="loginSubmitBtn" class="login-btn fluid-gradient">
+                    Enter Workspace <i class="fa-solid fa-arrow-right"></i>
+                </button>
+
+                <p id="loginError" class="login-msg hidden">Invalid Credentials</p>
             </div>
+        </div>
 
-            <h2 id="authTitle">EduSummarizer</h2>
-            <p id="authSubtitle">Sign in to your AI Workspace</p>
+        <div class="login-right">
+            <div class="showcase-container">
+                
+                <div class="showcase-header">
+                    <span class="badge">Enterprise Edition</span>
+                    <h1>Supercharge your learning with AI.</h1>
+                    <p>Transform lectures into smart flashcards, mind maps, and interactive quizzes in seconds.</p>
+                </div>
 
-            <div class="input-group">
-                <i class="fa-solid fa-user"></i>
-                <input type="text" id="loginUser" placeholder="Email" autocomplete="off">
+                <div class="floating-ui ui-card-1">
+                    <div class="ui-header"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Summary Generated</div>
+                    <div class="ui-skeleton-line" style="width: 80%"></div>
+                    <div class="ui-skeleton-line" style="width: 60%"></div>
+                    <div class="ui-skeleton-line" style="width: 90%"></div>
+                </div>
+
+                <div class="floating-ui ui-card-2">
+                    <div class="ui-header"><i class="fa-solid fa-layer-group"></i> 20 Flashcards Ready</div>
+                    <div class="ui-progress-bar"><div class="ui-progress-fill"></div></div>
+                </div>
+
+                <div class="floating-ui ui-card-3">
+                    <div class="ui-header"><i class="fa-solid fa-trophy"></i> Quiz Arena Mastered</div>
+                    <div class="ui-score">95%</div>
+                </div>
+
             </div>
-
-            <div class="input-group">
-                <i class="fa-solid fa-lock"></i>
-                <input type="password" id="loginPass" placeholder="Password">
-            </div>
-
-            <div class="input-group hidden" id="confirmPasswordGroup">
-                <i class="fa-solid fa-lock"></i>
-                <input type="password" id="confirmPass" placeholder="Confirm Password">
-            </div>
-
-            <div class="login-footer-row">
-                <button id="toggleAuthMode" class="toggle-auth-btn link-btn">Don't have an account? Register</button>
-            </div>
-
-            <button id="loginSubmitBtn" class="login-btn fluid-gradient">
-                Enter Workspace <i class="fa-solid fa-arrow-right"></i>
-            </button>
-
-            <p id="loginError" class="login-msg hidden">Invalid Credentials</p>
         </div>
     </div>
 
