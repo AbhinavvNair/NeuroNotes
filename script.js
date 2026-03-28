@@ -1521,4 +1521,6 @@ document.addEventListener('DOMContentLoaded', () => {
             gradeQuiz();
         });
     })();
+
+    
 });

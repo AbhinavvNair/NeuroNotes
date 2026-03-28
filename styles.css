@@ -533,3 +533,4 @@ pre code { display: block; padding: 20px; overflow-x: auto; font-family: 'Fira C
 .logout-modal .confirm-actions { display:flex; justify-content:center; gap:14px; }
 #logoutConfirmOverlay.show { opacity:1; pointer-events:auto; }
 #logoutConfirmOverlay.show .logout-modal { transform:scale(1) translateY(0); opacity:1; }
+
