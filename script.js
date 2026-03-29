@@ -1522,5 +1522,103 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     })();
 
+    // ==========================================
+    // TAB ROUTING (WORKSPACE vs DEEP RESEARCH)
+    // ==========================================
+    const navWorkspace = $('navWorkspaceBtn');
+    const navResearch = $('navResearchBtn');
+    const workspace = $('workspace');
+    const researchScreen = $('researchScreen');
     
+    // Fallback if topHeader elements don't exist yet
+    const topHeader = $('topHeader');
+
+    function switchTab(tab) {
+        // Remove active class from nav buttons
+        document.querySelectorAll('.nav-menu .nav-btn').forEach(b => b.classList.remove('active'));
+        
+        // Hide both main screens
+        workspace?.classList.add('hidden');
+        researchScreen?.classList.add('hidden');
+        document.body.classList.remove('research-mode');
+
+        if (tab === 'workspace') {
+            if(navWorkspace) navWorkspace.classList.add('active');
+            if(workspace) workspace.classList.remove('hidden');
+            if(topHeader) topHeader.querySelector('h1').innerText = "Workspace";
+        } else if (tab === 'research') {
+            if(navResearch) navResearch.classList.add('active');
+            if(researchScreen) researchScreen.classList.remove('hidden');
+            if(topHeader) topHeader.querySelector('h1').innerText = "Deep Research Engine";
+            document.body.classList.add('research-mode');
+            setTimeout(() => $('drInput')?.focus(), 100);
+        }
+    }
+
+    navWorkspace?.addEventListener('click', () => switchTab('workspace'));
+    navResearch?.addEventListener('click', () => switchTab('research'));
+
+    // ==========================================
+    // DEEP RESEARCH ENGINE EXECUTION
+    // ==========================================
+    const drInput = $('drInput');
+    const drSubmit = $('drSubmit');
+    const drHome = $('drHome');
+    const drResults = $('drResults');
+    const drQueryTitle = $('drQueryTitle');
+    const drOutput = $('drOutput');
+    const drCheckbox = $('drCheckbox');
+    const drBadge = $('drBadge');
+
+    // Click on suggestion cards
+    document.querySelectorAll('.dr-card').forEach(card => {
+        card.addEventListener('click', () => {
+            drInput.value = card.querySelector('p').innerText;
+            executeResearch();
+        });
+    });
+
+    drSubmit?.addEventListener('click', executeResearch);
+    drInput?.addEventListener('keydown', e => { if (e.key === 'Enter') executeResearch(); });
+
+    function executeResearch() {
+        const query = drInput.value.trim();
+        if (!query) return;
+
+        // UI Transition
+        drHome.classList.add('hidden');
+        drResults.classList.remove('hidden');
+        drQueryTitle.innerText = query;
+        drBadge.style.display = drCheckbox.checked ? 'flex' : 'none';
+
+        // Loading State
+        drOutput.innerHTML = `
+            <div style="display:flex; align-items:center; gap:15px; color:var(--primary); font-weight:600; font-size:1.1rem; margin-top:20px;">
+                <i class="fa-solid fa-circle-notch fa-spin"></i> 
+                <span>Synthesizing from multiple web sources...</span>
+            </div>
+        `;
+
+        // Mock Fetch Delay (Simulating AI API Call)
+        setTimeout(() => {
+            const isDeep = drCheckbox.checked;
+            const mockMarkdown = `
+### Comprehensive Overview
+The concept of **${query}** represents a significant paradigm shift. Based on the synthesis of top-tier academic and industry sources, this approach optimizes systems for both latency and scalability.
+
+${isDeep ? '> **Deep Think Analysis:** By mapping this methodology to a non-Euclidean vector space, we observe a 40% reduction in computational overhead during the backward pass. This requires strict memory management but scales logarithmically.\n' : ''}
+
+### Key Architectural Components
+1. **The Orchestration Layer:** Handles state management and complex routing protocols.
+2. **The Inference Engine:** Pushes compute directly to edge nodes for real-time processing.
+3. **The Data Pipeline:** Ensures strict ACID compliance across distributed, multi-region clusters.
+
+### Final Conclusion
+Implementing this effectively requires a strong grasp of underlying data structures, but yields massive performance dividends when pushed to production scale.
+            `;
+
+            drOutput.innerHTML = "";
+            streamText(drOutput, mockMarkdown.trim());
+        }, 2000);
+    }
 });

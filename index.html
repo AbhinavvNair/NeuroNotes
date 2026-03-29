@@ -6,8 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="EduSummarizer — AI-powered study workspace for notes, summaries and flashcards.">
     <title>EduSummarizer | AI Workspace</title>
-    <link rel="icon"
-        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
 
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -25,7 +24,7 @@
 
 <body>
 
-   <div id="loginScreen" class="login-container">
+    <div id="loginScreen" class="login-container">
         
         <div class="ambient-blob blob-purple"></div>
         <div class="ambient-blob blob-blue"></div>
@@ -69,7 +68,6 @@
 
         <div class="login-right">
             <div class="showcase-container">
-                
                 <div class="showcase-header">
                     <span class="badge">Enterprise Edition</span>
                     <h1>Supercharge your learning with AI.</h1>
@@ -92,7 +90,6 @@
                     <div class="ui-header"><i class="fa-solid fa-trophy"></i> Quiz Arena Mastered</div>
                     <div class="ui-score">95%</div>
                 </div>
-
             </div>
         </div>
     </div>
@@ -104,7 +101,6 @@
                 <h3>Logout?</h3>
                 <p class="text-muted">You will be signed out of your workspace.</p>
             </div>
-
             <div class="confirm-actions">
                 <button id="cancelLogoutBtn" class="fc-btn fc-btn-ghost">Cancel</button>
                 <button id="confirmLogoutBtn" class="fc-btn fc-btn-danger">Logout</button>
@@ -121,8 +117,12 @@
             </div>
 
             <nav class="nav-menu">
-                <button class="nav-btn active" id="newNoteBtn">
-                    <i class="fa-solid fa-plus"></i> New Note
+                <button class="nav-btn active" id="navWorkspaceBtn">
+                    <i class="fa-solid fa-layer-group"></i> Workspace
+                </button>
+
+                <button class="nav-btn" id="navResearchBtn">
+                    <i class="fa-solid fa-magnifying-glass-chart"></i> Deep Research
                 </button>
 
                 <div class="nav-section">
@@ -183,7 +183,7 @@
 
             <header class="top-header" id="topHeader">
                 <div class="header-titles">
-                    <h1>Workspace</h1>
+                    <h1 id="mainHeaderTitle">Workspace</h1>
                 </div>
                 <div class="header-actions">
 
@@ -194,10 +194,8 @@
                         <div class="theme-menu">
                             <button class="theme-option" data-idx="0"><i class="fa-solid fa-moon"></i> Nebula</button>
                             <button class="theme-option" data-idx="1"><i class="fa-solid fa-sun"></i> Daylight</button>
-                            <button class="theme-option" data-idx="2"><i class="fa-solid fa-battery-quarter"></i>
-                                Midnight</button>
-                            <button class="theme-option" data-idx="3"><i class="fa-solid fa-terminal"></i>
-                                Hacker</button>
+                            <button class="theme-option" data-idx="2"><i class="fa-solid fa-battery-quarter"></i> Midnight</button>
+                            <button class="theme-option" data-idx="3"><i class="fa-solid fa-terminal"></i> Hacker</button>
                             <button class="theme-option" data-idx="4"><i class="fa-solid fa-fire"></i> Sunset</button>
                         </div>
                     </div>
@@ -232,12 +230,26 @@
                             <span class="panel-title"><i class="fa-regular fa-keyboard"></i> Input</span>
                             <span id="aiModeBadge" class="ai-mode-badge">Summary 📘</span>
                         </div>
-                        <div class="template-bar">
+                        <div class="template-bar" style="display: flex; gap: 8px;">
+                            <button class="chip" id="attachBtn" title="Upload File" style="padding: 4px 10px;"><i class="fa-solid fa-paperclip"></i></button>
                             <button class="chip" data-action="general">General</button>
                             <button class="chip" id="flashcardChip">Flashcard</button>
                         </div>
                     </div>
-                    <textarea id="userInput" placeholder="Paste your educational content here to refine..."></textarea>
+                    
+                    <div class="dropzone-container" id="dropzone">
+                        <textarea id="userInput" placeholder="Paste text, or drag & drop PDFs, PPTs, and Images here..."></textarea>
+                        
+                        <div class="drop-overlay" id="dropOverlay">
+                            <div class="scanner-laser"></div>
+                            <i class="fa-solid fa-file-arrow-up drop-icon"></i>
+                            <p id="dropText">Drop file to analyze</p>
+                        </div>
+                        
+                        <input type="file" id="fileInput" multiple hidden accept=".pdf,.ppt,.pptx,.png,.jpg,.jpeg">
+                        <div class="file-chips" id="fileChips"></div>
+                    </div>
+
                     <div class="panel-footer" id="inputFooter">
                         <span class="status-indicator" id="inputStats">0 words</span>
                     </div>
@@ -274,17 +286,62 @@
                         <div class="audio-controls">
                             <select id="voiceSelect" class="voice-select"></select>
                             <button class="audio-btn" id="stopAudioBtn"><i class="fa-solid fa-stop"></i></button>
-                            <button class="audio-btn main-play" id="playAudioBtn"><i
-                                    class="fa-solid fa-play"></i></button>
+                            <button class="audio-btn main-play" id="playAudioBtn"><i class="fa-solid fa-play"></i></button>
                             <button class="audio-btn speed" id="speedBtn">1x</button>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <div id="researchScreen" class="dr-screen hidden">
+                <div id="drHome" class="dr-home">
+                    <i class="fa-solid fa-globe dr-logo"></i>
+                    <h2 class="dr-title">What do you want to master?</h2>
+
+                    <div class="dr-search-box">
+                        <i class="fa-solid fa-magnifying-glass dr-icon"></i>
+                        <input type="text" id="drInput" placeholder="Ask a complex concept, theory, or problem..." autocomplete="off">
+                        
+                        <div class="dr-toggle">
+                            <span>Deep Think</span>
+                            <label class="switch">
+                                <input type="checkbox" id="drCheckbox" checked>
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                        <button id="drSubmit" class="dr-btn"><i class="fa-solid fa-arrow-right"></i></button>
+                    </div>
+
+                    <div class="dr-suggestions">
+                        <div class="dr-card">
+                            <i class="fa-solid fa-brain"></i>
+                            <p>Explain the mathematics behind Backpropagation visually.</p>
+                        </div>
+                        <div class="dr-card">
+                            <i class="fa-solid fa-database"></i>
+                            <p>Compare SQL vs NoSQL databases for a real-time chat app.</p>
+                        </div>
+                        <div class="dr-card">
+                            <i class="fa-solid fa-network-wired"></i>
+                            <p>What is the architecture of a Transformer model like GPT-4?</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="drResults" class="dr-results hidden">
+                    <div class="dr-header">
+                        <h2 id="drQueryTitle">Your Query</h2>
+                        <div class="dr-badges">
+                            <span class="dr-badge"><i class="fa-solid fa-book-open"></i> Synthesizing web sources</span>
+                            <span class="dr-badge active-deep" id="drBadge"><i class="fa-solid fa-bolt"></i> Deep Think Active</span>
+                        </div>
+                    </div>
+                    <div id="drOutput" class="markdown-content dr-output-area"></div>
+                </div>
+            </div>
+
             <div id="floatingMenu" class="floating-menu hidden">
-                <button class="float-btn" data-action="rewrite"><i class="fa-solid fa-wand-magic-sparkles"></i>
-                    Rewrite</button>
+                <button class="float-btn" data-action="rewrite"><i class="fa-solid fa-wand-magic-sparkles"></i> Rewrite</button>
                 <button class="float-btn" data-action="summarize"><i class="fa-solid fa-list"></i> Summarize</button>
                 <button class="float-btn" data-action="explain"><i class="fa-solid fa-code"></i> Explain</button>
                 <button class="float-btn" data-action="read"><i class="fa-solid fa-volume-high"></i> Read</button>
@@ -606,7 +663,7 @@
             <div class="quiz-ambient blob-purple"></div>
             <div class="quiz-ambient blob-blue" style="animation-delay: -3s;"></div>
 
-            <div id="quizSetup" class="quiz-setup-card glass-panel">
+            <div id="quizSetup" class="quiz-setup-card glass-panel" style="max-width: 600px; padding: 45px;">
                 <div class="quiz-hero-icon"><i class="fa-solid fa-khanda"></i></div>
                 <h2 class="quiz-setup-title">Configure Exam</h2>
                 <p class="quiz-setup-subtitle">Forge a custom test to challenge your knowledge.</p>
