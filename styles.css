@@ -239,22 +239,56 @@ body.resizing{cursor:col-resize!important;user-select:none;}
     min-height: 0;
 }
 
+/* ==========================================
+   SMOOTH TYPING & TEXTAREA UPGRADES
+   ========================================== */
+/* ==========================================
+   SMOOTH TYPING & TEXTAREA UPGRADES
+   ========================================== */
 .dropzone-container textarea#userInput { 
     flex: 1; 
     width: 100%;
     height: 100%;
-    padding: 20px; 
+    padding: 25px; 
     border: none; 
     background: transparent; 
     color: var(--text-main); 
     outline: none; 
-    font-size: 1.05rem; 
+    
+    /* Clean, simple, normal font */
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.1rem; 
+    line-height: 1.8; 
+    letter-spacing: 0.4px;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    
+    caret-color: var(--primary); 
     resize: none; 
     z-index: 1; 
     position: relative; 
-    line-height: 1.6; 
 }
 
+/* Subtle smooth glow for the terminal theme (normal font retained) */
+html[data-theme=terminal] .dropzone-container textarea#userInput {
+    text-shadow: 0 0 2px rgba(34, 197, 94, 0.4); 
+}
+
+/* Custom smooth scrollbar for the text area */
+.dropzone-container textarea#userInput::-webkit-scrollbar {
+    width: 8px;
+}
+.dropzone-container textarea#userInput::-webkit-scrollbar-track {
+    background: transparent;
+}
+.dropzone-container textarea#userInput::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+}
+.dropzone-container textarea#userInput::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+}
 /* The Dark Overlay (Hidden by default) */
 .drop-overlay { 
     position: absolute; 
