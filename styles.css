@@ -27,7 +27,6 @@ button,input,select,textarea,a,.panel,.sidebar,.nav-btn,.list-item,.chip,.action
 @keyframes floatBlob { 0% { transform: scale(1) translate(0, 0); } 33% { transform: scale(1.1) translate(50px, -50px); } 66% { transform: scale(0.9) translate(-30px, 30px); } 100% { transform: scale(1.05) translate(-50px, -20px); } }
 
 /* === SPLIT LAYOUT === */
-/* === SPLIT LAYOUT === */
 .login-left { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; z-index: 10; padding: 20px; }
 
 .login-right { 
@@ -39,7 +38,7 @@ button,input,select,textarea,a,.panel,.sidebar,.nav-btn,.list-item,.chip,.action
     position: relative; 
     z-index: 10; 
     background: linear-gradient(to right, rgba(0,0,0,0.4), transparent); 
-    border-left: none; /* Removes the old boring grey line */
+    border-left: none; 
     backdrop-filter: blur(10px); 
     padding: 40px; 
     overflow: hidden; 
@@ -89,11 +88,6 @@ button,input,select,textarea,a,.panel,.sidebar,.nav-btn,.list-item,.chip,.action
     100% { top: 90%; opacity: 0; height: 30px; }
 }
 
-/* Hide right side on mobile automatically */
-@media (max-width: 900px) { .login-right { display: none; } }
-
-/* Cinematic Glass Card */
-/* Hide right side on mobile automatically */
 @media (max-width: 900px) { .login-right { display: none; } }
 
 /* Cinematic Glass Card */
@@ -143,9 +137,7 @@ button,input,select,textarea,a,.panel,.sidebar,.nav-btn,.list-item,.chip,.action
 
 .floating-ui { background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); position: relative; animation: floatUI 6s ease-in-out infinite; }
 .floating-ui.ui-card-1 { transform: rotate(-2deg); margin-left: -20px; animation-delay: 0s; }
-    /* Success Green */
 .floating-ui.ui-card-2 { transform: rotate(1deg); margin-left: 40px; animation-delay: -2s; border-color: rgba(34, 197, 94, 0.3); }
-    /* Warning/Trophy Gold */
 .floating-ui.ui-card-3 { transform: rotate(-1deg); margin-left: 10px; animation-delay: -4s; border-color: rgba(245, 158, 11, 0.3); }
 
 .ui-header { font-size: 0.9rem; font-weight: 600; color: white; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
@@ -162,7 +154,6 @@ button,input,select,textarea,a,.panel,.sidebar,.nav-btn,.list-item,.chip,.action
 .ui-card-1 { --rot: -2deg; }
 .ui-card-2 { --rot: 1deg; }
 .ui-card-3 { --rot: -1deg; }
-
 
 /* --- SIDEBAR --- */
 .sidebar{width:260px;background:var(--bg-sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:24px;z-index:10;transition:margin-left .3s;overflow:hidden;}
@@ -231,11 +222,82 @@ body.resizing{cursor:col-resize!important;user-select:none;}
 .head-left{display:flex;align-items:center;gap:12px;}
 .chip{padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:.75rem;cursor:pointer;font-family:inherit;}
 .chip:hover{color:var(--text-main);background:rgba(255,255,255,0.05);}
-textarea{flex:1;resize:none;border:none;padding:20px;font-family:inherit;font-size:1rem;background:var(--bg-input);color:var(--text-main);outline:none;}
 .panel-footer{height:var(--bottom-bar-height);display:flex;align-items:center;padding:0 15px;border-top:1px solid var(--border);font-size:.75rem;color:var(--text-muted);background:rgba(0,0,0,0.2);flex-shrink:0;}
 .markdown-content{flex:1;padding:20px;overflow-y:auto;line-height:1.7;background:var(--bg-input);color:var(--text-main);}
 .icon-btn{width:30px;height:30px;border-radius:4px;border:1px solid transparent;background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .icon-btn:hover{color:var(--text-main);background:rgba(255,255,255,0.1);}
+
+/* ==========================================
+   OMNIVORE DROPZONE FIX
+   ========================================== */
+.dropzone-container { 
+    flex: 1; /* Fills remaining space */
+    display: flex; 
+    flex-direction: column; 
+    position: relative; /* Crucial for overlay */
+    overflow: hidden; 
+    min-height: 0;
+}
+
+.dropzone-container textarea#userInput { 
+    flex: 1; 
+    width: 100%;
+    height: 100%;
+    padding: 20px; 
+    border: none; 
+    background: transparent; 
+    color: var(--text-main); 
+    outline: none; 
+    font-size: 1.05rem; 
+    resize: none; 
+    z-index: 1; 
+    position: relative; 
+    line-height: 1.6; 
+}
+
+/* The Dark Overlay (Hidden by default) */
+.drop-overlay { 
+    position: absolute; 
+    inset: 0; /* Covers entire dropzone */
+    background: rgba(15, 23, 42, 0.9); 
+    backdrop-filter: blur(6px); 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center; 
+    z-index: 10; 
+    opacity: 0; /* Invisible until drag */
+    pointer-events: none; 
+    transition: opacity 0.3s ease; 
+}
+
+/* Show overlay when dragging */
+.dropzone-container.drag-active .drop-overlay, 
+.dropzone-container.scanning .drop-overlay { 
+    opacity: 1; 
+    pointer-events: auto;
+}
+
+.dropzone-container.drag-active { background: rgba(129, 140, 248, 0.05); }
+.dropzone-container.drag-active::after { content: ''; position: absolute; inset: 10px; border: 2px dashed var(--primary); border-radius: 12px; pointer-events: none; z-index: 5; animation: borderPulse 1.5s infinite; }
+@keyframes borderPulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+.drop-icon { font-size: 4rem; color: var(--primary); margin-bottom: 15px; animation: floatIcon 2s ease-in-out infinite; filter: drop-shadow(0 0 15px rgba(129, 140, 248, 0.4)); }
+.drop-overlay p#dropText { font-size: 1.25rem; font-weight: 600; color: white; letter-spacing: 0.5px; margin: 0; }
+
+/* Scanner Laser */
+.scanner-laser { position: absolute; left: 0; right: 0; top: 0; height: 3px; background: #22c55e; box-shadow: 0 0 20px 5px rgba(34, 197, 94, 0.5), 0 0 40px 10px rgba(34, 197, 94, 0.2); opacity: 0; pointer-events: none; z-index: 11; }
+.dropzone-container.scanning .scanner-laser { opacity: 1; animation: scan 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate; }
+.dropzone-container.scanning .drop-icon { color: #22c55e; filter: drop-shadow(0 0 15px rgba(34, 197, 94, 0.4)); animation: none; }
+@keyframes scan { 0% { top: 5%; } 100% { top: 95%; } }
+
+/* Attached File Chips */
+.file-chips { display: flex; flex-wrap: wrap; gap: 10px; padding: 0 20px 15px; z-index: 2; position: relative; }
+.file-chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; font-size: 0.85rem; font-weight: 500; color: var(--text-main); animation: chipFadeIn 0.3s ease; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+.file-chip i.type-icon { color: var(--primary); }
+.file-chip .remove-chip { color: var(--text-muted); cursor: pointer; transition: 0.2s; margin-left: 4px; }
+.file-chip .remove-chip:hover { color: #ef4444; transform: scale(1.2); }
+@keyframes chipFadeIn { from { opacity: 0; transform: translateY(10px) scale(0.9); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
 /* THEME MENU */
 .theme-wrapper { position: relative; display: inline-block; }
