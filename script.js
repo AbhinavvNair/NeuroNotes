@@ -1582,6 +1582,22 @@ document.addEventListener('DOMContentLoaded', () => {
     drInput?.addEventListener('keydown', e => { if (e.key === 'Enter') executeResearch(); });
 
     function executeResearch() {
+        // Add this right after your executeResearch() function
+    const drNewSearchBtn = $('drNewSearchBtn');
+
+    drNewSearchBtn?.addEventListener('click', () => {
+        // Hide results, show home
+        drResults.classList.add('hidden');
+        drHome.classList.remove('hidden');
+        
+        // Clear the input box and focus it for the next question
+        drInput.value = '';
+        setTimeout(() => drInput.focus(), 100);
+        
+        // Clear the previous output so it doesn't flash on the next search
+        drOutput.innerHTML = '';
+    });
+    
         const query = drInput.value.trim();
         if (!query) return;
 

@@ -675,6 +675,47 @@ input:checked ~ span, .dr-toggle:has(input:checked) span { color: var(--primary)
 .dr-results { flex: 1; padding: 40px 15%; overflow-y: auto; display: flex; flex-direction: column; background: var(--bg-app); }
 .dr-header { margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
 #drQueryTitle { font-size: 2rem; font-weight: 800; margin-bottom: 15px; line-height: 1.3; }
+/* Results View Layout Fixes for New Search Button */
+.dr-header-top { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: flex-start; 
+    margin-bottom: 15px; 
+}
+
+#drQueryTitle { 
+    font-size: 2rem; 
+    font-weight: 800; 
+    line-height: 1.3; 
+    margin: 0; /* Removed bottom margin since the wrapper handles it */
+    flex: 1; 
+    padding-right: 20px; 
+}
+
+.dr-new-search-btn { 
+    background: rgba(255,255,255,0.05); 
+    border: 1px solid rgba(255,255,255,0.1); 
+    color: var(--text-main); 
+    padding: 8px 16px; 
+    border-radius: 8px; 
+    cursor: pointer; 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    font-weight: 600; 
+    font-size: 0.9rem; 
+    transition: all 0.2s; 
+    white-space: nowrap; 
+    font-family: inherit; 
+}
+
+.dr-new-search-btn:hover { 
+    background: var(--primary); 
+    border-color: var(--primary); 
+    color: white; 
+    transform: translateY(-2px); 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
 .dr-badges { display: flex; gap: 10px; flex-wrap: wrap; }
 .dr-badge { padding: 6px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
 .dr-badge.active-deep { background: rgba(168, 85, 247, 0.15); border-color: #a855f7; color: #a855f7; }
@@ -682,3 +723,4 @@ input:checked ~ span, .dr-toggle:has(input:checked) span { color: var(--primary)
 
 /* Hide Header Actions when Research is active */
 body.research-mode .header-actions { display: none !important; }
+
