@@ -1569,6 +1569,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const drOutput = $('drOutput');
     const drCheckbox = $('drCheckbox');
     const drBadge = $('drBadge');
+    const drNewSearchBtn = $('drNewSearchBtn');
 
     // Click on suggestion cards
     document.querySelectorAll('.dr-card').forEach(card => {
@@ -1581,23 +1582,47 @@ document.addEventListener('DOMContentLoaded', () => {
     drSubmit?.addEventListener('click', executeResearch);
     drInput?.addEventListener('keydown', e => { if (e.key === 'Enter') executeResearch(); });
 
-    function executeResearch() {
-        // Add this right after your executeResearch() function
-    const drNewSearchBtn = $('drNewSearchBtn');
-
     drNewSearchBtn?.addEventListener('click', () => {
-        // Hide results, show home
         drResults.classList.add('hidden');
         drHome.classList.remove('hidden');
-        
-        // Clear the input box and focus it for the next question
         drInput.value = '';
-        setTimeout(() => drInput.focus(), 100);
-        
-        // Clear the previous output so it doesn't flash on the next search
         drOutput.innerHTML = '';
+        setTimeout(() => drInput.focus(), 100);
     });
-    
+
+    function buildResearchSystemPrompt(isDeep) {
+        const depthInstructions = isDeep
+            ? "Go deep: explain mechanisms, trade-offs, edge cases, assumptions, and implementation strategy in detail."
+            : "Keep strong detail but prioritize clarity and concise structure over extreme depth.";
+
+        return `You are a senior research analyst and expert educator.
+
+Task:
+- Produce a thorough, beginner-to-advanced explanation for the user's topic.
+- ${depthInstructions}
+- Use clean markdown with meaningful headings.
+- If the topic involves math/science, include formulas with inline math ($...$) or block math ($$...$$) when useful.
+- If comparison helps, include a compact markdown table.
+- Avoid fluff, hype, and generic filler.
+
+Required structure:
+1. Executive Summary (4-6 bullets)
+2. Core Concepts Explained Clearly
+3. How It Works (step-by-step)
+4. Real-World Applications
+5. Advantages, Risks, and Limitations
+6. Common Misconceptions (with corrections)
+7. Practical Action Plan (what to do next)
+8. 5 Challenging Self-Test Questions
+
+Writing style:
+- Explain like a great teacher.
+- Define technical terms before using them heavily.
+- Use examples and analogies where appropriate.
+- Keep each section informative and substantial.`;
+    }
+
+    async function executeResearch() {
         const query = drInput.value.trim();
         if (!query) return;
 
@@ -1611,30 +1636,46 @@ document.addEventListener('DOMContentLoaded', () => {
         drOutput.innerHTML = `
             <div style="display:flex; align-items:center; gap:15px; color:var(--primary); font-weight:600; font-size:1.1rem; margin-top:20px;">
                 <i class="fa-solid fa-circle-notch fa-spin"></i> 
-                <span>Synthesizing from multiple web sources...</span>
+                <span>Building a deep analysis...</span>
             </div>
         `;
 
-        // Mock Fetch Delay (Simulating AI API Call)
-        setTimeout(() => {
+        try {
             const isDeep = drCheckbox.checked;
-            const mockMarkdown = `
-### Comprehensive Overview
-The concept of **${query}** represents a significant paradigm shift. Based on the synthesis of top-tier academic and industry sources, this approach optimizes systems for both latency and scalability.
+            const res = await apiFetch(`${API_BASE}/generate`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    system_prompt: buildResearchSystemPrompt(isDeep),
+                    prompt: query,
+                    max_tokens: isDeep ? 5000 : 3200,
+                    temperature: 0.35,
+                })
+            });
 
-${isDeep ? '> **Deep Think Analysis:** By mapping this methodology to a non-Euclidean vector space, we observe a 40% reduction in computational overhead during the backward pass. This requires strict memory management but scales logarithmically.\n' : ''}
-
-### Key Architectural Components
-1. **The Orchestration Layer:** Handles state management and complex routing protocols.
-2. **The Inference Engine:** Pushes compute directly to edge nodes for real-time processing.
-3. **The Data Pipeline:** Ensures strict ACID compliance across distributed, multi-region clusters.
-
-### Final Conclusion
-Implementing this effectively requires a strong grasp of underlying data structures, but yields massive performance dividends when pushed to production scale.
-            `;
+            if (!res.ok) throw new Error("Research request failed");
+            const data = await res.json();
 
             drOutput.innerHTML = "";
-            streamText(drOutput, mockMarkdown.trim());
-        }, 2000);
+            await streamText(drOutput, data.response, () => {
+                if (window.renderMathInElement) {
+                    renderMathInElement(drOutput, {
+                        delimiters: [
+                            { left: "$$", right: "$$", display: true },
+                            { left: "$", right: "$", display: false }
+                        ]
+                    });
+                }
+                renderMermaidDiagrams();
+            });
+            showToast("Research ready");
+        } catch (e) {
+            drOutput.innerHTML = `
+                <div style="color:#ef4444; font-weight:600; margin-top:16px;">
+                    Failed to generate deep research. Please try again.
+                </div>
+            `;
+            showToast(e.message || "Research failed");
+        }
     }
 });
