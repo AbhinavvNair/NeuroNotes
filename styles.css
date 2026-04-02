@@ -721,6 +721,65 @@ input:checked ~ span, .dr-toggle:has(input:checked) span { color: var(--primary)
 .dr-badge.active-deep { background: rgba(168, 85, 247, 0.15); border-color: #a855f7; color: #a855f7; }
 .dr-output-area { flex: 1; background: transparent; padding: 0; }
 
+.dr-followup-panel {
+    margin-top: 20px;
+    border: 1px solid var(--border);
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 14px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dr-followup-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    background: rgba(129, 140, 248, 0.1);
+}
+
+#drFollowupInput {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text-main);
+    font-size: 0.98rem;
+    font-family: inherit;
+    padding: 8px;
+}
+
+#drFollowupInput::placeholder {
+    color: var(--text-muted);
+}
+
+.dr-followup-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+}
+
+@media (max-width: 900px) {
+    .dr-results {
+        padding: 26px 6%;
+    }
+
+    .dr-header-top {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    #drQueryTitle {
+        padding-right: 0;
+        font-size: 1.5rem;
+    }
+}
+
 /* Hide Header Actions when Research is active */
 body.research-mode .header-actions { display: none !important; }
 

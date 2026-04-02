@@ -1570,6 +1570,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const drCheckbox = $('drCheckbox');
     const drBadge = $('drBadge');
     const drNewSearchBtn = $('drNewSearchBtn');
+    const drFollowupPanel = $('drFollowupPanel');
+    const drFollowupInput = $('drFollowupInput');
+    const drFollowupSubmit = $('drFollowupSubmit');
+
+    let drTopic = "";
+    let drConversation = [];
+    let drDocumentMarkdown = "";
 
     // Click on suggestion cards
     document.querySelectorAll('.dr-card').forEach(card => {
@@ -1581,12 +1588,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     drSubmit?.addEventListener('click', executeResearch);
     drInput?.addEventListener('keydown', e => { if (e.key === 'Enter') executeResearch(); });
+    drFollowupSubmit?.addEventListener('click', executeResearchFollowup);
+    drFollowupInput?.addEventListener('keydown', e => {
+        if (e.key === 'Enter') executeResearchFollowup();
+    });
 
     drNewSearchBtn?.addEventListener('click', () => {
         drResults.classList.add('hidden');
         drHome.classList.remove('hidden');
         drInput.value = '';
         drOutput.innerHTML = '';
+        drTopic = "";
+        drConversation = [];
+        drDocumentMarkdown = "";
+        drFollowupInput.value = '';
+        drFollowupPanel?.classList.add('hidden');
         setTimeout(() => drInput.focus(), 100);
     });
 
@@ -1625,6 +1641,11 @@ Writing style:
     async function executeResearch() {
         const query = drInput.value.trim();
         if (!query) return;
+
+        drTopic = query;
+        drConversation = [];
+        drDocumentMarkdown = "";
+        drFollowupPanel?.classList.add('hidden');
 
         // UI Transition
         drHome.classList.add('hidden');
@@ -1668,6 +1689,16 @@ Writing style:
                 }
                 renderMermaidDiagrams();
             });
+
+            drDocumentMarkdown = data.response;
+
+            drConversation.push({
+                question: query,
+                answer: data.response,
+            });
+
+            drFollowupPanel?.classList.remove('hidden');
+            drFollowupInput.value = '';
             showToast("Research ready");
         } catch (e) {
             drOutput.innerHTML = `
@@ -1676,6 +1707,65 @@ Writing style:
                 </div>
             `;
             showToast(e.message || "Research failed");
+        }
+    }
+
+    async function executeResearchFollowup() {
+        const followup = drFollowupInput?.value.trim();
+        if (!followup || !drTopic) return;
+
+        drFollowupSubmit.disabled = true;
+        drFollowupSubmit.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+
+        const contextWindow = drConversation.slice(-3)
+            .map((turn, idx) => `Turn ${idx + 1}\nUser: ${turn.question}\nAssistant: ${turn.answer}`)
+            .join("\n\n");
+
+        const followupPrompt = `Original topic: ${drTopic}\n\nConversation so far:\n${contextWindow}\n\nFollow-up question: ${followup}\n\nAnswer the follow-up in depth while staying consistent with prior analysis. Use markdown headings and concrete examples.`;
+
+        try {
+            const res = await apiFetch(`${API_BASE}/generate`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    system_prompt: buildResearchSystemPrompt(drCheckbox.checked),
+                    prompt: followupPrompt,
+                    max_tokens: drCheckbox.checked ? 3200 : 2200,
+                    temperature: 0.35,
+                })
+            });
+
+            if (!res.ok) throw new Error("Follow-up request failed");
+            const data = await res.json();
+
+            const followupBlock = `\n\n---\n\n### Follow-up Question\n${followup}\n\n### Follow-up Answer\n${data.response}`;
+            const merged = drDocumentMarkdown + followupBlock;
+
+            drOutput.innerHTML = marked.parse(merged);
+            if (window.renderMathInElement) {
+                renderMathInElement(drOutput, {
+                    delimiters: [
+                        { left: "$$", right: "$$", display: true },
+                        { left: "$", right: "$", display: false }
+                    ]
+                });
+            }
+
+            drConversation.push({
+                question: followup,
+                answer: data.response,
+            });
+
+            drDocumentMarkdown = merged;
+
+            drFollowupInput.value = '';
+            drOutput.scrollTop = drOutput.scrollHeight;
+            showToast("Follow-up answered");
+        } catch (e) {
+            showToast(e.message || "Follow-up failed");
+        } finally {
+            drFollowupSubmit.disabled = false;
+            drFollowupSubmit.innerHTML = '<i class="fa-solid fa-arrow-up"></i>';
         }
     }
 });
