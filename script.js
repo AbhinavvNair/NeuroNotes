@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const $ = id => document.getElementById(id);
     const toast = $('toast'), userInput = $('userInput'), aiOutput = $('aiOutput');
     const showToast = msg => { toast.innerText = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2000); };
-    const API_BASE = "http://127.0.0.1:8000";
+    const API_BASE = window.location.origin;
 
     let currentRawResponse = "", historyNotes = [], historyDisplayCount = 10, savedNotesData = [], lastGeneratedNoteId = null;
     let isReg = false, isResizing = false;
@@ -135,13 +135,45 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.addEventListener('keydown', (e) => {
-        if (e.key === "Escape") logoutOverlay?.classList.remove('show');
+        if (e.key === "Escape") {
+            logoutOverlay?.classList.remove('show');
+            deleteOverlay?.classList.remove('show');
+        }
     });
 
     confirmLogoutBtn?.addEventListener('click', () => {
         localStorage.removeItem("access_token");
         sessionStorage.removeItem("access_token");
         location.reload();
+    });
+
+    // === DELETE CONFIRMATION MODAL ===
+    const deleteOverlay = $('deleteConfirmOverlay');
+    let pendingDeleteCallback = null;
+
+    const showDeleteConfirm = (title, msg, onConfirm) => {
+        $('deleteConfirmTitle').textContent = title;
+        $('deleteConfirmMsg').textContent = msg;
+        pendingDeleteCallback = onConfirm;
+        deleteOverlay.classList.add('show');
+    };
+
+    $('cancelDeleteBtn')?.addEventListener('click', () => {
+        deleteOverlay.classList.remove('show');
+        pendingDeleteCallback = null;
+    });
+
+    deleteOverlay?.addEventListener('click', (e) => {
+        if (e.target === deleteOverlay) {
+            deleteOverlay.classList.remove('show');
+            pendingDeleteCallback = null;
+        }
+    });
+
+    $('confirmDeleteBtn')?.addEventListener('click', async () => {
+        deleteOverlay.classList.remove('show');
+        if (pendingDeleteCallback) await pendingDeleteCallback();
+        pendingDeleteCallback = null;
     });
 
     // --- API & AUTH ---
@@ -160,9 +192,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return res;
     };
 
-    const loadNotes = async () => {
+    const loadNotes = async (search = "") => {
         try {
-            const res = await apiFetch(`${API_BASE}/notes`);
+            const url = search ? `${API_BASE}/notes?search=${encodeURIComponent(search)}` : `${API_BASE}/notes`;
+            const res = await apiFetch(url);
             if (!res.ok) throw new Error("Fetch failed");
             const notes = await res.json();
             historyNotes = notes.filter(n => !n.is_bookmarked); savedNotesData = notes.filter(n => n.is_bookmarked);
@@ -170,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderList($('savedList'), savedNotesData, true);
             if (historyNotes.length > historyDisplayCount) {
                 const btn = document.createElement('div'); btn.className = "list-item"; btn.style = "text-align:center; font-weight:600; color:var(--primary);";
-                btn.textContent = "Show More"; btn.onclick = () => { historyDisplayCount += 10; loadNotes(); };
+                btn.textContent = "Show More"; btn.onclick = () => { historyDisplayCount += 10; loadNotes(search); };
                 $('historyList').appendChild(btn);
             }
         } catch (e) {
@@ -190,8 +223,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderList = (container, notes, isSaved) => {
         container.innerHTML = "";
         notes.forEach(note => {
-            const wrap = document.createElement('div'); wrap.className = "list-item"; wrap.style.display = "flex"; wrap.style.justifyContent = "space-between";
-            const title = document.createElement('span'); title.style.cursor = "pointer"; title.textContent = note.title || note.content.substring(0, 25);
+            const wrap = document.createElement('div'); wrap.className = "list-item"; wrap.style.display = "flex"; wrap.style.justifyContent = "space-between"; wrap.style.alignItems = "center"; wrap.style.gap = "4px";
+            const title = document.createElement('span'); title.style.cursor = "pointer"; title.style.flex = "1"; title.style.overflow = "hidden"; title.style.textOverflow = "ellipsis"; title.style.whiteSpace = "nowrap";
+            title.textContent = note.title || note.content.substring(0, 25);
             title.onclick = () => {
                 userInput.value = note.title || "";
                 aiOutput.innerHTML = marked.parse(note.content);
@@ -201,10 +235,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 enableLiveCode();
                 renderMermaidDiagrams();
             };
+
+            const actions = document.createElement('div'); actions.style.display = "flex"; actions.style.gap = "2px"; actions.style.flexShrink = "0";
+
+            if (!isSaved) {
+                const renameBtn = document.createElement('button'); renameBtn.className = "hover-action"; renameBtn.style = "background:transparent; border:none; cursor:pointer; color:#a5b4fc;";
+                renameBtn.innerHTML = `<i class="fa-solid fa-pen"></i>`;
+                renameBtn.title = "Rename";
+                renameBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    const input = document.createElement('input');
+                    input.value = title.textContent;
+                    input.style = "flex:1; background:var(--bg-input, var(--bg-panel)); border:1px solid var(--border); border-radius:6px; color:var(--text-main); padding:2px 6px; font-size:0.85rem; width:100%; min-width:0;";
+                    wrap.replaceChild(input, title);
+                    renameBtn.style.display = 'none';
+                    input.focus(); input.select();
+                    const commit = async () => {
+                        const newTitle = input.value.trim();
+                        if (newTitle && newTitle !== note.title) {
+                            try {
+                                const r = await apiFetch(`${API_BASE}/notes/${note.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: newTitle }) });
+                                if (!r.ok) throw new Error();
+                                note.title = newTitle; showToast("Note renamed");
+                            } catch { showToast("Rename failed"); }
+                        }
+                        title.textContent = note.title || note.content.substring(0, 25);
+                        wrap.replaceChild(title, input);
+                        renameBtn.style.display = '';
+                    };
+                    input.addEventListener('blur', commit);
+                    input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.value = note.title || ""; input.blur(); } });
+                };
+                actions.appendChild(renameBtn);
+            }
+
             const btn = document.createElement('button'); btn.className = isSaved ? "hover-action" : "delete-btn hover-action"; btn.style = `background:transparent; border:none; cursor:pointer; color: ${isSaved ? '#818cf8' : '#ef4444'}`;
             btn.innerHTML = isSaved ? `<i class="fa-solid fa-bookmark"></i>` : `<i class="fa-solid fa-xmark"></i>`;
             btn.onclick = async (e) => { e.stopPropagation(); isSaved ? handleBookmark(note.id, true) : showDeleteModal(note.id); };
-            wrap.append(title, btn); container.appendChild(wrap);
+            actions.appendChild(btn);
+            wrap.append(title, actions); container.appendChild(wrap);
         });
     };
 
@@ -274,11 +343,16 @@ document.addEventListener('DOMContentLoaded', () => {
     $('loginSubmitBtn')?.addEventListener('click', async () => {
         const email = $('loginUser').value.trim(), pass = $('loginPass').value.trim(), conf = $('confirmPass')?.value.trim();
         if (!email || !pass) return showLoginError("Enter email and password");
+        if (isReg && pass.length < 8) return showLoginError("Password must be at least 8 characters");
         if (isReg && pass !== conf) return showLoginError("Passwords do not match");
         try {
             if (isReg) {
                 const r = await fetch(`${API_BASE}/register`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password: pass }) });
-                if (!r.ok) throw new Error((await r.json()).detail || "Registration failed");
+                if (!r.ok) {
+                    const err = await r.json();
+                    const msg = Array.isArray(err.detail) ? err.detail[0]?.msg : err.detail;
+                    throw new Error(msg || "Registration failed");
+                }
                 showToast("Account created. Please login."); $('toggleAuthMode').click(); return;
             }
             const fd = new URLSearchParams(); fd.append("username", email); fd.append("password", pass);
@@ -319,16 +393,30 @@ document.addEventListener('DOMContentLoaded', () => {
         const list = $(listId), isHidden = list.style.display === 'none';
         list.style.display = isHidden ? 'flex' : 'none'; $(btnId).classList.toggle('active', isHidden);
     };
-    $('historyToggle')?.addEventListener('click', () => toggleList('historyList', 'historyToggle'));
+    $('historyToggle')?.addEventListener('click', () => {
+        toggleList('historyList', 'historyToggle');
+        const wrapper = $('historySearchWrapper');
+        const isOpen = $('historyList').style.display !== 'none';
+        if (wrapper) wrapper.style.display = isOpen ? 'block' : 'none';
+        if (!isOpen && $('historySearchInput')) $('historySearchInput').value = '';
+    });
+
+    let searchDebounce = null;
+    $('historySearchInput')?.addEventListener('input', () => {
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => loadNotes($('historySearchInput').value.trim()), 300);
+    });
+
     $('savedToggle')?.addEventListener('click', () => toggleList('savedList', 'savedToggle'));
     $('savedDecksToggle')?.addEventListener('click', async () => { await renderSavedDecksSidebar(); toggleList('savedDecksList', 'savedDecksToggle'); });
 
-    $('clearHistoryBtn')?.addEventListener("click", async () => {
-        if (!confirm("Clear all history?")) return;
-        try {
-            await Promise.all(historyNotes.map(n => apiFetch(`${API_BASE}/notes/${n.id}`, { method: "DELETE" })));
-            await loadNotes(); showToast("History cleared");
-        } catch { showToast("Error clearing history"); }
+    $('clearHistoryBtn')?.addEventListener("click", () => {
+        showDeleteConfirm("Clear History?", "All history notes will be permanently deleted.", async () => {
+            try {
+                await Promise.all(historyNotes.map(n => apiFetch(`${API_BASE}/notes/${n.id}`, { method: "DELETE" })));
+                await loadNotes(); showToast("History cleared");
+            } catch { showToast("Error clearing history"); }
+        });
     });
 
     const handleBookmark = async (id, isRemoving = false) => {
@@ -342,7 +430,11 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast("Copied!");
     });
 
-    const showDeleteModal = async (id) => { if (confirm("Delete this note?")) { try { await apiFetch(`${API_BASE}/notes/${id}`, { method: "DELETE" }); await loadNotes(); showToast("Note deleted"); } catch { showToast("Delete failed"); } } };
+    const showDeleteModal = (id) => {
+        showDeleteConfirm("Delete Note?", "This note will be permanently deleted.", async () => {
+            try { await apiFetch(`${API_BASE}/notes/${id}`, { method: "DELETE" }); await loadNotes(); showToast("Note deleted"); } catch { showToast("Delete failed"); }
+        });
+    };
 
     // ==========================================
     // AUTO-MIND MAPPER (MERMAID.JS)

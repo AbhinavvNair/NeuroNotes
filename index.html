@@ -94,6 +94,20 @@
         </div>
     </div>
 
+    <div id="deleteConfirmOverlay" class="confirm-overlay">
+        <div class="confirm-modal logout-modal">
+            <div class="fc-exit-header">
+                <div class="fc-exit-icon">🗑️</div>
+                <h3 id="deleteConfirmTitle">Delete?</h3>
+                <p class="text-muted" id="deleteConfirmMsg">This action cannot be undone.</p>
+            </div>
+            <div class="confirm-actions">
+                <button id="cancelDeleteBtn" class="fc-btn fc-btn-ghost">Cancel</button>
+                <button id="confirmDeleteBtn" class="fc-btn fc-btn-danger">Delete</button>
+            </div>
+        </div>
+    </div>
+
     <div id="logoutConfirmOverlay" class="confirm-overlay">
         <div class="confirm-modal logout-modal">
             <div class="fc-exit-header">
@@ -129,6 +143,10 @@
                     <button class="nav-btn" id="historyToggle">
                         <i class="fa-solid fa-clock-rotate-left"></i> History
                     </button>
+                    <div id="historySearchWrapper" style="display:none; padding: 4px 8px;">
+                        <input id="historySearchInput" type="text" placeholder="Search notes..." autocomplete="off"
+                            style="width:100%; padding:6px 10px; border-radius:8px; border:1px solid var(--border); background:var(--bg-input, var(--bg-panel)); color:var(--text-main); font-size:0.85rem; outline:none;">
+                    </div>
                     <div id="historyList" class="nav-list" style="display: none;"></div>
                 </div>
 

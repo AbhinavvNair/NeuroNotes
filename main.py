@@ -1,7 +1,6 @@
 import os
 from contextlib import asynccontextmanager
 
-from aiohttp import payload
 from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -50,7 +49,7 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://127.0.0.1:8000", "http://localhost:8000"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -192,6 +191,7 @@ def create_note(
 @app.get("/notes", response_model=list[schemas.NoteResponse])
 def get_notes(
     saved: bool | None = Query(default=None),
+    search: str | None = Query(default=None),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
@@ -203,9 +203,46 @@ def get_notes(
     if saved is True:
         query = query.filter(models.Note.is_bookmarked == True)
 
+    if search:
+        term = f"%{search}%"
+        query = query.filter(
+            models.Note.title.ilike(term) | models.Note.content.ilike(term)
+        )
+
     notes = query.order_by(models.Note.created_at.desc()).all()
 
     return notes
+
+
+# Update Note
+@app.patch("/notes/{note_id}", response_model=schemas.NoteResponse)
+def update_note(
+    note_id: int,
+    updates: schemas.NoteUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    note = (
+        db.query(models.Note)
+        .filter(
+            models.Note.id == note_id,
+            models.Note.owner_id == current_user.id,
+        )
+        .first()
+    )
+
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    if updates.title is not None:
+        note.title = updates.title
+    if updates.content is not None:
+        note.content = updates.content
+
+    db.commit()
+    db.refresh(note)
+
+    return note
 
 
 # Delete Note
@@ -268,11 +305,6 @@ async def generate_text(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    # DEBUG PRINT — this will confirm presets are changing
-    print("\n===== SYSTEM PROMPT (FRONTEND) =====")
-    print(request.system_prompt)
-    print("====================================\n")
-
     client = model_context.get("client")
     if not client:
         raise HTTPException(
@@ -295,7 +327,7 @@ async def generate_text(
         generated_text = completion.choices[0].message.content
 
         new_note = models.Note(
-            title=request.prompt[:50] if request.prompt else "Untitled",
+            title=(request.prompt.strip().splitlines()[0])[:50] if request.prompt else "Untitled",
             content=generated_text,
             owner_id=current_user.id,
             is_bookmarked=False,
@@ -405,5 +437,3 @@ if __name__ == "__main__":
         # Ignore env/cache noise so autoreload only tracks app code changes.
         reload_excludes=[".venv/*", "__pycache__/*", ".git/*"],
     )
-    
-    

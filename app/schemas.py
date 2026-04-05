@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from datetime import datetime
 
 
@@ -7,6 +7,13 @@ from datetime import datetime
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
+
+    @field_validator('password')
+    @classmethod
+    def password_min_length(cls, v):
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters')
+        return v
 
 
 class UserLogin(BaseModel):
@@ -36,12 +43,17 @@ class NoteCreate(BaseModel):
     content: str
 
 
+class NoteUpdate(BaseModel):
+    title: str | None = None
+    content: str | None = None
+
+
 class NoteResponse(BaseModel):
     id: int
     title: str | None
     content: str
     created_at: datetime
-    is_bookmarked: bool   # ← ADD THIS
+    is_bookmarked: bool
 
     class Config:
         from_attributes = True
