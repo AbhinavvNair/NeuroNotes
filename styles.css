@@ -555,6 +555,29 @@ pre code { display: block; padding: 20px; overflow-x: auto; font-family: 'Fira C
 .fc-rating-section { margin-top:4px; }
 .fc-rating-btns { display:flex; gap:8px; margin-top:10px; }
 .fc-rating-btn { flex:1; padding:9px; border-radius:8px; border:1px solid; background:transparent; font:700 .78rem inherit; cursor:pointer; transition:.2s; }
+.fc-mobile { display: none; }
+.fc-mobile-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px 20px;
+    min-height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.6;
+}
+.fc-mobile-answer-text {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+}
+.fc-mobile-nav {
+    display: flex;
+    gap: 10px;
+}
 .fc-got { border-color: #22c55e; color: #22c55e; }
 .fc-got:hover, .fc-got.fc-rated { background: #22c55e; color: #000; }
 .fc-almost { border-color: #f59e0b; color: #f59e0b; }
@@ -765,6 +788,20 @@ input:checked ~ span, .dr-toggle:has(input:checked) span { color: var(--primary)
 }
 
 @media (max-width: 900px) {
+    .fc-panes {
+        display: none;
+    }
+
+    .fc-mobile {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        flex-direction: column;
+        gap: 14px;
+        padding: 20px;
+    }
+
     .dr-results {
         padding: 26px 6%;
     }
