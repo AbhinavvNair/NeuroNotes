@@ -908,3 +908,33 @@ html[data-theme=terminal] .markdown-content strong {
     background: rgba(74, 222, 128, 0.1);
     text-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
 }
+
+/* ==========================================
+   PARAGRAPH SPACING & SLEEK SCROLLBARS
+   ========================================== */
+
+/* Give paragraphs room to breathe */
+.markdown-content p {
+    margin-bottom: 1.4em;
+    line-height: 1.8;
+}
+
+.markdown-content p:last-child {
+    margin-bottom: 0;
+}
+
+/* Global Ultra-Minimal Scrollbars */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary); /* Will glow green in your terminal theme! */
+}
