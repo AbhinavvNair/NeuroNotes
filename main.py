@@ -1,11 +1,14 @@
+import io
 import os
+import time
+from collections import defaultdict
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Depends, Query
+from fastapi import FastAPI, HTTPException, Depends, Query, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -24,8 +27,32 @@ load_dotenv()
 API_KEY = os.getenv("GROQ_API_KEY")
 model_context = {}
 
+# ── Rate Limiting ────────────────────────────────────────────────────────────
+ADMIN_EMAILS = {"yuvraj@nandini.com", "abhinavnair@gmail.com"}
+RATE_LIMIT_REQUESTS = 30        # max requests
+RATE_LIMIT_WINDOW_SEC = 3600    # per hour
 
-# Lifespan (Groq Client Init)
+_request_log: dict[str, list[float]] = defaultdict(list)
+
+
+def _apply_rate_limit(email: str) -> None:
+    """Raise 429 if a non-admin user exceeds the hourly AI request quota."""
+    if email in ADMIN_EMAILS:
+        return
+    now = time.time()
+    window_start = now - RATE_LIMIT_WINDOW_SEC
+    log = _request_log[email]
+    # Prune stale entries
+    _request_log[email] = [t for t in log if t > window_start]
+    if len(_request_log[email]) >= RATE_LIMIT_REQUESTS:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit exceeded: {RATE_LIMIT_REQUESTS} AI requests per hour. Try again later.",
+        )
+    _request_log[email].append(now)
+
+
+# ── Lifespan (Groq Client Init) ──────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("🔌 Initializing NeuroNotes Pro...")
@@ -55,7 +82,7 @@ app.add_middleware(
 )
 
 
-# Generate Request Schema
+# ── Request Schemas ──────────────────────────────────────────────────────────
 class GenerateRequest(BaseModel):
     system_prompt: str | None = None
     prompt: str
@@ -63,26 +90,14 @@ class GenerateRequest(BaseModel):
     temperature: float = 0.7
 
 
-class FlashcardDeckCreate(BaseModel):
-    topic: str
-    difficulty: str
-    cards: list[dict]
+class ChatRequest(BaseModel):
+    message: str
+    context: str = ""
+    temperature: float = 0.3
 
 
-class FlashcardDeckResponse(BaseModel):
-    id: int
-    topic: str
-    difficulty: str
-    count: int
-    cards: list[dict]
-    saved_at: str
+# ── AUTH ENDPOINTS ───────────────────────────────────────────────────────────
 
-    model_config = ConfigDict(from_attributes=True)
-
-
-# AUTH ENDPOINTS
-
-# Register
 @app.post("/register", response_model=schemas.UserResponse)
 def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     existing_user = (
@@ -106,7 +121,6 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 
-# Login
 @app.post("/login")
 def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
@@ -134,7 +148,6 @@ def login(
     }
 
 
-# Current User
 @app.get("/me")
 def read_current_user(
     current_user: models.User = Depends(get_current_user),
@@ -146,7 +159,6 @@ def read_current_user(
     }
 
 
-# Change Password
 @app.post("/change-password")
 def change_password(
     payload: schemas.ChangePasswordRequest,
@@ -165,9 +177,8 @@ def change_password(
     return {"message": "Password updated successfully"}
 
 
-# NOTES CRUD (PHASE 2)
+# ── NOTES CRUD ───────────────────────────────────────────────────────────────
 
-# Create Note
 @app.post("/notes", response_model=schemas.NoteResponse)
 def create_note(
     note: schemas.NoteCreate,
@@ -187,7 +198,6 @@ def create_note(
     return new_note
 
 
-# Get User Notes
 @app.get("/notes", response_model=list[schemas.NoteResponse])
 def get_notes(
     saved: bool | None = Query(default=None),
@@ -214,7 +224,6 @@ def get_notes(
     return notes
 
 
-# Update Note
 @app.patch("/notes/{note_id}", response_model=schemas.NoteResponse)
 def update_note(
     note_id: int,
@@ -245,7 +254,6 @@ def update_note(
     return note
 
 
-# Delete Note
 @app.delete("/notes/{note_id}")
 def delete_note(
     note_id: int,
@@ -268,8 +276,6 @@ def delete_note(
     db.commit()
 
     return {"message": "Note deleted successfully"}
-
-# Toggle Bookmark
 
 
 @app.patch("/notes/{note_id}/bookmark")
@@ -298,13 +304,16 @@ def toggle_bookmark(
     return note
 
 
-# GENERATE (Protected)
+# ── AI ENDPOINTS ─────────────────────────────────────────────────────────────
+
 @app.post("/generate")
 async def generate_text(
     request: GenerateRequest,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
+    _apply_rate_limit(current_user.email)
+
     client = model_context.get("client")
     if not client:
         raise HTTPException(
@@ -342,16 +351,140 @@ async def generate_text(
             "note_id": new_note.id,
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Groq API Error: {str(e)}")
 
-# Save a flashcard deck
+
+@app.post("/chat")
+async def chat(
+    request: ChatRequest,
+    current_user: models.User = Depends(get_current_user),
+):
+    """Contextual chat — calls the AI but does NOT save a note."""
+    _apply_rate_limit(current_user.email)
+
+    client = model_context.get("client")
+    if not client:
+        raise HTTPException(
+            status_code=503, detail="AI Client not initialized.")
+
+    try:
+        system_prompt = (
+            "You are a helpful study assistant. "
+            "Use the provided context to answer the user's question. "
+            "Keep your answer concise, conversational, and format it in markdown."
+        )
+        prompt = f"Context:\n{request.context}\n\nUser Question:\n{request.message}"
+
+        completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=request.temperature,
+            max_tokens=1500,
+        )
+
+        return {"response": completion.choices[0].message.content}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Groq API Error: {str(e)}")
 
 
-@app.post("/flashcards", response_model=FlashcardDeckResponse)
+# ── FILE UPLOAD ───────────────────────────────────────────────────────────────
+
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+
+
+@app.post("/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Extract plain text from an uploaded PDF or PPTX file."""
+    content = await file.read()
+
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail="File too large. Maximum size is 10 MB.",
+        )
+
+    filename = (file.filename or "").lower()
+
+    if filename.endswith(".pdf"):
+        try:
+            from pypdf import PdfReader
+            reader = PdfReader(io.BytesIO(content))
+            pages = [page.extract_text() or "" for page in reader.pages]
+            text = "\n\n".join(p.strip() for p in pages if p.strip())
+            if not text:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Could not extract text from this PDF. It may be image-only or encrypted.",
+                )
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=422, detail=f"PDF read error: {str(e)}")
+
+    elif filename.endswith(".pptx"):
+        try:
+            from pptx import Presentation
+            prs = Presentation(io.BytesIO(content))
+            parts = []
+            for i, slide in enumerate(prs.slides, 1):
+                slide_texts = [
+                    shape.text.strip()
+                    for shape in slide.shapes
+                    if hasattr(shape, "text") and shape.text.strip()
+                ]
+                if slide_texts:
+                    parts.append(f"--- Slide {i} ---\n" + "\n".join(slide_texts))
+            text = "\n\n".join(parts)
+            if not text:
+                raise HTTPException(
+                    status_code=422,
+                    detail="No text found in this presentation.",
+                )
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=422, detail=f"PPTX read error: {str(e)}")
+
+    elif filename.endswith(".ppt"):
+        raise HTTPException(
+            status_code=415,
+            detail="Old .ppt format is not supported. Please save as .pptx and re-upload.",
+        )
+
+    elif filename.endswith((".png", ".jpg", ".jpeg")):
+        raise HTTPException(
+            status_code=415,
+            detail="Image OCR is not supported. Please copy the text from the image manually.",
+        )
+
+    else:
+        raise HTTPException(
+            status_code=415,
+            detail="Unsupported file type. Supported formats: PDF, PPTX.",
+        )
+
+    return {"text": text, "filename": file.filename}
+
+
+# ── FLASHCARDS ────────────────────────────────────────────────────────────────
+
+@app.post("/flashcards", response_model=schemas.FlashcardDeckResponse)
 def save_flashcard_deck(
-    deck: FlashcardDeckCreate,
+    deck: schemas.FlashcardDeckCreate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
@@ -365,7 +498,7 @@ def save_flashcard_deck(
     db.add(new_deck)
     db.commit()
     db.refresh(new_deck)
-    return FlashcardDeckResponse(
+    return schemas.FlashcardDeckResponse(
         id=new_deck.id,
         topic=new_deck.topic,
         difficulty=new_deck.difficulty,
@@ -375,8 +508,7 @@ def save_flashcard_deck(
     )
 
 
-# Get all flashcard decks for current user
-@app.get("/flashcards", response_model=list[FlashcardDeckResponse])
+@app.get("/flashcards", response_model=list[schemas.FlashcardDeckResponse])
 def get_flashcard_decks(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
@@ -388,7 +520,7 @@ def get_flashcard_decks(
         .all()
     )
     return [
-        FlashcardDeckResponse(
+        schemas.FlashcardDeckResponse(
             id=d.id,
             topic=d.topic,
             difficulty=d.difficulty,
@@ -400,7 +532,6 @@ def get_flashcard_decks(
     ]
 
 
-# Delete a flashcard deck
 @app.delete("/flashcards/{deck_id}")
 def delete_flashcard_deck(
     deck_id: int,
@@ -422,11 +553,10 @@ def delete_flashcard_deck(
     return {"message": "Deck deleted"}
 
 
-# Static Files
+# ── STATIC FILES ──────────────────────────────────────────────────────────────
 app.mount("/", StaticFiles(directory=".", html=True), name="static")
 
 
-# Run Server
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
@@ -434,6 +564,5 @@ if __name__ == "__main__":
         host="127.0.0.1",
         port=8000,
         reload=True,
-        # Ignore env/cache noise so autoreload only tracks app code changes.
-        reload_excludes=[".venv/*", "__pycache__/*", ".git/*"],
+        reload_excludes=[".venv/*", "venv/*", "__pycache__/*", ".git/*"],
     )

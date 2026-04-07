@@ -45,6 +45,8 @@ pandas==3.0.0
 passlib==1.7.4
 propcache==0.4.1
 psycopg2-binary==2.9.11
+pypdf==6.9.2
+python-pptx==1.0.2
 pyarrow==23.0.0
 pyasn1==0.6.2
 pycparser==3.0
