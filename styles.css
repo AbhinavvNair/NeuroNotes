@@ -820,3 +820,91 @@ input:checked ~ span, .dr-toggle:has(input:checked) span { color: var(--primary)
 /* Hide Header Actions when Research is active */
 body.research-mode .header-actions { display: none !important; }
 
+/* ==========================================
+   UI/UX POLISH & TYPOGRAPHY UPGRADE
+   ========================================== */
+
+/* 1. Panel Depth & Separation */
+.panel {
+    /* Adds a subtle top highlight to make the panels look like premium cards */
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    background: linear-gradient(180deg, var(--bg-panel) 0%, rgba(15, 23, 42, 0.8) 100%);
+}
+
+/* 2. Upgrading the Output Readability (Notion/Obsidian Style) */
+.markdown-content {
+    padding: 30px 35px;
+    font-size: 1.05rem;
+    line-height: 1.8;
+    color: var(--text-main);
+    /* Softens the text slightly so it's not blindingly bright */
+    opacity: 0.9; 
+}
+
+/* Headings Hierarchy */
+.markdown-content h1, 
+.markdown-content h2, 
+.markdown-content h3 {
+    color: #ffffff; /* Headings should always be crisp white */
+    font-weight: 700;
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    line-height: 1.3;
+    letter-spacing: -0.5px;
+}
+
+.markdown-content h1 { font-size: 1.8rem; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+.markdown-content h2 { font-size: 1.5rem; }
+.markdown-content h3 { font-size: 1.25rem; color: var(--primary); }
+
+/* Bold Text (Highlights) */
+.markdown-content strong {
+    color: var(--primary); /* Makes bold text pop in your theme color */
+    font-weight: 700;
+    background: rgba(129, 140, 248, 0.1); /* Subtle highlight background */
+    padding: 0 4px;
+    border-radius: 4px;
+}
+
+/* Beautiful Lists */
+.markdown-content ul, 
+.markdown-content ol {
+    margin-left: 20px;
+    margin-bottom: 1.5em;
+}
+
+.markdown-content li {
+    margin-bottom: 0.5em;
+    padding-left: 5px;
+}
+
+.markdown-content li::marker {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+/* Blockquotes for Callouts */
+.markdown-content blockquote {
+    border-left: 4px solid var(--primary);
+    background: rgba(0, 0, 0, 0.2);
+    margin: 1.5em 0;
+    padding: 15px 20px;
+    border-radius: 0 8px 8px 0;
+    font-style: italic;
+    color: var(--text-muted);
+}
+
+/* 3. Terminal Theme Override for Readability */
+/* If the user selects the Hacker theme, we don't want ALL text to be neon green. 
+   We keep headings and highlights green, but regular text off-white for reading. */
+html[data-theme=terminal] .markdown-content {
+    color: #e2e8f0; 
+}
+html[data-theme=terminal] .markdown-content h1,
+html[data-theme=terminal] .markdown-content h2,
+html[data-theme=terminal] .markdown-content strong {
+    color: #4ADE80; /* Hacker Green */
+    background: rgba(74, 222, 128, 0.1);
+    text-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
+}
