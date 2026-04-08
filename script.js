@@ -556,10 +556,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // --- CORE AI ENGINE ---
+    // --- CORE AI ENGINE (WORKSPACE REFINE) ---
     $('processBtn')?.addEventListener('click', async () => {
         const text = userInput.value.trim(); if (!text) return showToast("Enter notes first");
         const btn = $('processBtn'); btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Thinking...';
+
+        // INJECT SKELETON LOADER FOR WORKSPACE
+        aiOutput.innerHTML = `
+            <div class="skeleton-wrapper">
+                <div class="skeleton-title"></div>
+                <div class="skeleton-line long"></div>
+                <div class="skeleton-line medium"></div>
+                <div class="skeleton-line long"></div>
+                <div class="skeleton-line short"></div>
+                <div class="skeleton-subtitle"></div>
+                <div class="skeleton-line medium"></div>
+                <div class="skeleton-line long"></div>
+            </div>
+        `;
+        aiOutput.classList.remove('empty-state');
 
         try {
             const activePreset = localStorage.getItem("ai_preset") || "summary";
@@ -583,6 +598,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             currentRawResponse = data.response; lastGeneratedNoteId = data.note_id;
 
+            aiOutput.innerHTML = ""; // Clear skeleton before streaming
             await streamText(aiOutput, data.response, () => {
                 if (window.renderMathInElement) renderMathInElement(aiOutput, { delimiters: [{ left: "$$", right: "$$", display: true }, { left: "$", right: "$", display: false }] });
                 enableLiveCode();
@@ -590,7 +606,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             await loadNotes(); showToast("Complete");
-        } catch (e) { showToast(e.message); } finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Refine'; }
+        } catch (e) { showToast(e.message); aiOutput.innerHTML = "Error generation failed."; } finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Refine'; }
     });
 
     $('newNoteBtn')?.addEventListener('click', () => { userInput.value = ''; aiOutput.innerHTML = '<i class="fa-solid fa-layer-group"></i><p>Ready</p>'; aiOutput.classList.add('empty-state'); currentRawResponse = ""; lastGeneratedNoteId = null; });
@@ -1693,7 +1709,7 @@ document.addEventListener('DOMContentLoaded', () => {
         drTopic = "";
         drConversation = [];
         drDocumentMarkdown = "";
-        drFollowupInput.value = '';
+        if(drFollowupInput) drFollowupInput.value = '';
         drFollowupPanel?.classList.add('hidden');
         setTimeout(() => drInput.focus(), 100);
     });
@@ -1745,11 +1761,19 @@ Writing style:
         drQueryTitle.innerText = query;
         drBadge.style.display = drCheckbox.checked ? 'flex' : 'none';
 
-        // Loading State
+        // INJECT SKELETON LOADER FOR DEEP RESEARCH
         drOutput.innerHTML = `
-            <div style="display:flex; align-items:center; gap:15px; color:var(--primary); font-weight:600; font-size:1.1rem; margin-top:20px;">
-                <i class="fa-solid fa-circle-notch fa-spin"></i> 
-                <span>Building a deep analysis...</span>
+            <div class="skeleton-wrapper">
+                <div class="skeleton-title"></div>
+                <div class="skeleton-line long"></div>
+                <div class="skeleton-line medium"></div>
+                <div class="skeleton-line long"></div>
+                <div class="skeleton-line short"></div>
+                <div class="skeleton-subtitle"></div>
+                <div class="skeleton-line medium"></div>
+                <div class="skeleton-line long"></div>
+                <div class="skeleton-line long"></div>
+                <div class="skeleton-line short"></div>
             </div>
         `;
 
@@ -1790,7 +1814,7 @@ Writing style:
             });
 
             drFollowupPanel?.classList.remove('hidden');
-            drFollowupInput.value = '';
+            if(drFollowupInput) drFollowupInput.value = '';
             showToast("Research ready");
         } catch (e) {
             drOutput.innerHTML = `
