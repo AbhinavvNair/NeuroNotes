@@ -772,70 +772,87 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('mouseup', () => { isResizing = false; document.body.classList.remove('resizing'); $('resizeHandler')?.classList.remove('active'); });
 
     // --- FLOATING HIGHLIGHT MENU ---
+    // --- FLOATING HIGHLIGHT MENU ---
     const floatingMenu = $('floatingMenu');
     let selectedTextForMenu = "";
 
-    userInput.addEventListener('mouseup', (e) => {
-        selectedTextForMenu = userInput.value.substring(userInput.selectionStart, userInput.selectionEnd).trim();
+    // 1. Capture highlighting ANYWHERE in the app (Input, Summary, or Deep Research)
+    document.addEventListener('mouseup', (e) => {
+        // Prevent menu from closing if we are clicking inside the menu itself
+        if (floatingMenu.contains(e.target)) return;
+
+        // Get the highlighted text from normal HTML elements (like the AI Summary)
+        const selection = window.getSelection();
+        selectedTextForMenu = selection.toString().trim();
+
+        // Fallback: Check if they highlighted text inside a textarea instead
+        if (!selectedTextForMenu && e.target.tagName && e.target.tagName.toLowerCase() === 'textarea') {
+            selectedTextForMenu = e.target.value.substring(e.target.selectionStart, e.target.selectionEnd).trim();
+        }
+
         if (selectedTextForMenu.length > 0) {
-            floatingMenu.style.left = `${e.pageX - 80}px`; floatingMenu.style.top = `${e.pageY - 50}px`;
-            floatingMenu.classList.remove('hidden'); setTimeout(() => floatingMenu.classList.add('show'), 10);
-        } else hideFloatingMenu();
+            // Position the menu floating just above the mouse cursor
+            floatingMenu.style.left = `${e.pageX - 120}px`; 
+            floatingMenu.style.top = `${e.pageY - 60}px`;
+            
+            floatingMenu.classList.remove('hidden'); 
+            setTimeout(() => floatingMenu.classList.add('show'), 10);
+        } else {
+            hideFloatingMenu();
+        }
     });
 
-    const hideFloatingMenu = () => { floatingMenu.classList.remove('show'); setTimeout(() => floatingMenu.classList.add('hidden'), 200); };
-    document.addEventListener('mousedown', (e) => { if (!floatingMenu.contains(e.target) && e.target !== userInput) hideFloatingMenu(); });
-    userInput.addEventListener('keydown', hideFloatingMenu);
+    const hideFloatingMenu = () => { 
+        floatingMenu.classList.remove('show'); 
+        setTimeout(() => floatingMenu.classList.add('hidden'), 150); 
+    };
 
+    // Hide the menu if clicking randomly on the page or typing
+    document.addEventListener('mousedown', (e) => { 
+        if (!floatingMenu.contains(e.target)) hideFloatingMenu(); 
+    });
+    document.addEventListener('keydown', hideFloatingMenu);
+
+    // 2. Handle the Floating Menu Button Clicks
     document.querySelectorAll('.float-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
-            e.preventDefault(); const action = btn.dataset.action; hideFloatingMenu();
+            e.preventDefault(); 
+            const action = btn.dataset.action; 
+            hideFloatingMenu();
 
+            if (!selectedTextForMenu) return;
+
+            // Handle "Read Aloud" natively without hitting the AI
             if (action === 'read') {
-                speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(selectedTextForMenu);
-                const selVoice = window.speechSynthesis.getVoices().find(v => v.name === $('voiceSelect').value); if (selVoice) utterance.voice = selVoice;
-                speechSynthesis.speak(utterance); return;
+                speechSynthesis.cancel(); 
+                const utterance = new SpeechSynthesisUtterance(selectedTextForMenu);
+                const selVoice = window.speechSynthesis.getVoices().find(v => v.name === $('voiceSelect').value); 
+                if (selVoice) utterance.voice = selVoice;
+                speechSynthesis.speak(utterance); 
+                return;
             }
 
-            const processBtnOrig = $('processBtn').innerHTML;
-            $('processBtn').disabled = true; $('processBtn').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Working...';
+            // For Rewrite, Summarize, and Explain -> Route to the Chat Sidebar!
+            if (!$('chatSidebar').classList.contains('open')) {
+                // Force open the chat sidebar if it is closed
+                $('chatSidebar').classList.add('open');
+                $('workspace').classList.add('chat-open');
+            }
 
-            let systemPromptAddon = "";
-            if (action === 'rewrite') systemPromptAddon = "Rewrite the following text to be more clear, professional, and engaging. Return ONLY the rewritten text.";
-            if (action === 'summarize') systemPromptAddon = "Summarize the following text concisely in bullet points.";
-            if (action === 'explain') systemPromptAddon = "Explain the following code or concept step-by-step so a beginner can understand.";
+            // Format a smart prompt for the AI based on the button clicked
+            let actionText = "";
+            if (action === 'rewrite') actionText = "Please rewrite this specific section to be more professional and clear:";
+            if (action === 'summarize') actionText = "Can you summarize this specific quote in simple bullet points?";
+            if (action === 'explain') actionText = "Can you explain this specific concept in simpler terms?";
 
-            try {
-                const preset = localStorage.getItem("ai_preset") || "summary";
-                let systemPrompt = "";
-                if (preset === "custom") systemPrompt = localStorage.getItem("ai_custom_prompt") || "";
-                else systemPrompt = promptPresets[preset] || "";
-
-                const res = await apiFetch(`${API_BASE}/generate`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        system_prompt: systemPrompt.trim() + "\n" + systemPromptAddon,
-                        prompt: selectedTextForMenu
-                    })
-                });
-                if (!res.ok) throw new Error("Backend Error");
-                const data = await res.json();
-
-                currentRawResponse = data.response; lastGeneratedNoteId = data.note_id;
-
-                await streamText(aiOutput, data.response, () => {
-                    if (window.renderMathInElement) renderMathInElement(aiOutput, { delimiters: [{ left: "$$", right: "$$", display: true }, { left: "$", right: "$", display: false }] });
-                    enableLiveCode();
-                    renderMermaidDiagrams(); // Auto-render if AI generates code via rewrite/explain
-                });
-
-                await loadNotes(); showToast(action.charAt(0).toUpperCase() + action.slice(1) + " Complete!");
-            } catch (err) { showToast(err.message); }
-            finally { $('processBtn').disabled = false; $('processBtn').innerHTML = processBtnOrig; }
+            // Combine the command with the exact text the user highlighted
+            const fullMessage = `${actionText}\n\n"${selectedTextForMenu}"`;
+            
+            // Drop it into the chat input and simulate a click on the Send button!
+            $('chatInput').value = fullMessage;
+            $('sendChatBtn').click(); 
         });
     });
-
     // ==========================================
     // CONTEXTUAL AI CHAT SIDEBAR
     // ==========================================
