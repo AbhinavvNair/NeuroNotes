@@ -93,7 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // When clicking away, blur the dropdown so the arrow resets
     document.addEventListener('click', (event) => {
         const wrapper = document.querySelector('.select-wrapper');
         if (!wrapper || !presetSelect) return;
@@ -102,7 +101,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Password toggle (eye icon)
     document.querySelectorAll('.password-toggle').forEach(t => {
         t.addEventListener('click', () => {
             const target = document.getElementById(t.dataset.target);
@@ -540,8 +538,8 @@ document.addEventListener('DOMContentLoaded', () => {
         let i = 0, buffer = '';
         return new Promise(resolve => {
             const timer = setInterval(() => {
-                buffer += rawText.substring(i, i + 8);
-                i += 8;
+                buffer += rawText.substring(i, i + 15); // Fast chunking
+                i += 15;
                 container.innerHTML = marked.parse(buffer);
                 container.scrollTop = container.scrollHeight;
 
@@ -680,25 +678,19 @@ document.addEventListener('DOMContentLoaded', () => {
         $('voiceSelect').innerHTML = '';
 
         targetAccents.forEach(accent => {
-            // Find all voices that match the language code (handling en_US and en-US variations)
             const matches = voices.filter(v => v.lang.replace('_', '-').includes(accent.id));
             
             if (matches.length > 0) {
-                // Prioritize high-quality neural/premium voices provided by Google, Apple (Siri), or Microsoft
                 let bestMatch = matches.find(v => v.name.includes('Google') || v.name.includes('Premium') || v.name.includes('Natural') || v.name.includes('Siri'));
-                
-                // Fallback to standard OS voice if premium is not available
                 if (!bestMatch) bestMatch = matches[0];
 
                 const opt = document.createElement('option');
-                // Store the actual voice name as the value so we can retrieve it exactly later
                 opt.value = bestMatch.name;
                 opt.textContent = accent.label;
                 $('voiceSelect').appendChild(opt);
             }
         });
 
-        // Failsafe: if device somehow has zero matching English voices, provide whatever is index 0
         if ($('voiceSelect').options.length === 0 && voices.length > 0) {
             const opt = document.createElement('option');
             opt.value = voices[0].name;
@@ -720,7 +712,6 @@ document.addEventListener('DOMContentLoaded', () => {
         speechSynthesis.cancel(); 
         speechParams.utterance = new SpeechSynthesisUtterance(t);
         
-        // Find the exact voice object matching our dropdown selection
         const selVoice = window.speechSynthesis.getVoices().find(v => v.name === $('voiceSelect').value); 
         if (selVoice) speechParams.utterance.voice = selVoice;
         
@@ -771,29 +762,30 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('mousemove', e => { if (!isResizing) return; const r = $('workspace').getBoundingClientRect(); let w = ((e.clientX - r.left) / r.width) * 100; $('inputPanel').style.flex = `0 0 calc(${Math.max(20, Math.min(w, 80))}% - 8px)`; });
     document.addEventListener('mouseup', () => { isResizing = false; document.body.classList.remove('resizing'); $('resizeHandler')?.classList.remove('active'); });
 
-    // --- FLOATING HIGHLIGHT MENU ---
-    // --- FLOATING HIGHLIGHT MENU ---
+    // ==========================================
+    // FLOATING HIGHLIGHT MENU (VIEWPORT FIXED)
+    // ==========================================
     const floatingMenu = $('floatingMenu');
     let selectedTextForMenu = "";
+    let hideMenuTimeout = null; 
 
-    // 1. Capture highlighting ANYWHERE in the app (Input, Summary, or Deep Research)
+    // 1. Capture highlighting ANYWHERE in the app
     document.addEventListener('mouseup', (e) => {
-        // Prevent menu from closing if we are clicking inside the menu itself
         if (floatingMenu.contains(e.target)) return;
 
-        // Get the highlighted text from normal HTML elements (like the AI Summary)
         const selection = window.getSelection();
         selectedTextForMenu = selection.toString().trim();
 
-        // Fallback: Check if they highlighted text inside a textarea instead
         if (!selectedTextForMenu && e.target.tagName && e.target.tagName.toLowerCase() === 'textarea') {
             selectedTextForMenu = e.target.value.substring(e.target.selectionStart, e.target.selectionEnd).trim();
         }
 
         if (selectedTextForMenu.length > 0) {
-            // Position the menu floating just above the mouse cursor
-            floatingMenu.style.left = `${e.pageX - 120}px`; 
-            floatingMenu.style.top = `${e.pageY - 60}px`;
+            clearTimeout(hideMenuTimeout); 
+            
+            // Use clientX/Y to anchor strictly to the viewport
+            floatingMenu.style.left = `${e.clientX - 120}px`; 
+            floatingMenu.style.top = `${e.clientY - 60}px`;
             
             floatingMenu.classList.remove('hidden'); 
             setTimeout(() => floatingMenu.classList.add('show'), 10);
@@ -804,15 +796,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const hideFloatingMenu = () => { 
         floatingMenu.classList.remove('show'); 
-        setTimeout(() => floatingMenu.classList.add('hidden'), 150); 
+        hideMenuTimeout = setTimeout(() => floatingMenu.classList.add('hidden'), 150); 
     };
 
-    // Hide the menu if clicking randomly on the page or typing
     document.addEventListener('mousedown', (e) => { 
         if (!floatingMenu.contains(e.target)) hideFloatingMenu(); 
     });
-    document.addEventListener('keydown', hideFloatingMenu);
-
+    
     // 2. Handle the Floating Menu Button Clicks
     document.querySelectorAll('.float-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
@@ -853,16 +843,16 @@ document.addEventListener('DOMContentLoaded', () => {
             $('sendChatBtn').click(); 
         });
     });
+
     // ==========================================
     // CONTEXTUAL AI CHAT SIDEBAR
     // ==========================================
     const chatSidebar = $('chatSidebar'), chatInput = $('chatInput'), chatMessages = $('chatMessages');
 
-    let currentChatContextId = null; // Keeps track of what note we are currently discussing
+    let currentChatContextId = null; 
 
-    // Smart Greeting Generator
     const updateChatGreeting = () => {
-        chatMessages.innerHTML = ''; // Clear previous chat history for the new topic
+        chatMessages.innerHTML = ''; 
         const greetingDiv = document.createElement('div');
         greetingDiv.className = 'chat-msg ai';
 
@@ -871,13 +861,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!contextText.trim() || contextText.includes('Ready for refinement')) {
             greetingDiv.innerText = "Hi! Paste some notes first so we have something to talk about.";
         } else {
-            // Grab the first real line of the note to use as the Topic Name
             let firstLine = contextText.split('\n').find(line => line.trim().length > 0 && !line.startsWith('```')) || "";
-
-            // Strip out markdown formatting (like #, *, -) to get the pure text
             let topic = firstLine.replace(/^[#*\-\s:]+|[#*\-\s:]+$/g, '').substring(0, 40).trim();
 
-            // If the first line is just a long sentence instead of a title, fallback to a smart generic greeting
             if (topic.split(' ').length > 7 || topic.length < 3) {
                 greetingDiv.innerText = "I've analyzed your document. What specific part would you like to dive into?";
             } else {
@@ -888,7 +874,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const toggleChat = () => {
-        // Automatically reset the chat and update the greeting ONLY if the user switched to a new note
         const newContextId = lastGeneratedNoteId || userInput.value.substring(0, 20);
         if (currentChatContextId !== newContextId) {
             updateChatGreeting();
@@ -1395,12 +1380,11 @@ document.addEventListener('DOMContentLoaded', () => {
         let currentQuizData = [];
         let userAnswers = [];
         let quizTimerInterval = null;
-        let timeRemaining = 0; // in seconds
+        let timeRemaining = 0; 
         let totalTime = 0;
 
         let quizConfig = { count: 5, difficulty: 'Intermediate', timeLimit: 0 };
 
-        // Handle Configuration Selections
         const setupRowSelection = (rowId, configKey, isInt = false) => {
             document.querySelectorAll(`#${rowId} .fc-preset-btn`).forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -1414,7 +1398,6 @@ document.addEventListener('DOMContentLoaded', () => {
         setupRowSelection('quizDiffRow', 'difficulty', false);
         setupRowSelection('quizTimeRow', 'timeLimit', true);
 
-        // UI Routing
         function showQuizPhase(phaseId) {
             ['quizSetupWrap', 'quizExamWrap'].forEach(id => {
                 if(el(id)) el(id).style.display = 'none';
@@ -1429,11 +1412,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 el('quizExamWrap').style.display = 'block';
                 el('quizActive').classList.remove('hidden');
                 
-                // ANTI-CLASH FIX: Force the header to behave properly right when it shows up
                 const header = document.querySelector('.quiz-active-header');
                 if (header) {
-                    header.style.position = 'relative'; // Stops it from floating over text
-                    header.style.background = 'var(--bg-panel)'; // Makes it solid
+                    header.style.position = 'relative'; 
+                    header.style.background = 'var(--bg-panel)'; 
                     header.style.top = '0';
                     header.style.zIndex = '2000';
                 }
@@ -1443,14 +1425,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Open Arena
         el('quizArenaToggle')?.addEventListener('click', () => {
-            el('quizTopic').value = ""; // Default empty encourages "My Note"
+            el('quizTopic').value = ""; 
             showQuizPhase('quizSetup');
             el('quizScreen').classList.remove('hidden');
         });
 
-        // Close Arena
         el('closeQuizBtn')?.addEventListener('click', () => {
             clearInterval(quizTimerInterval);
             el('quizScreen').classList.add('hidden');
@@ -1459,7 +1439,6 @@ document.addEventListener('DOMContentLoaded', () => {
             showQuizPhase('quizSetup');
         });
 
-        // Timer Engine
         function formatTime(seconds) {
             const m = Math.floor(seconds / 60).toString().padStart(2, '0');
             const s = (seconds % 60).toString().padStart(2, '0');
@@ -1497,7 +1476,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 1000);
         }
 
-        // Generate Exam
         el('generateQuizBtn')?.addEventListener('click', async () => {
             const topicInput = el('quizTopic').value.trim();
             const topic = topicInput || (userInput.value ? "the exact content provided in the context" : "General Knowledge");
@@ -1544,7 +1522,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Render Questions
         function renderQuiz() {
             const container = el('quizQuestionsContainer');
             container.innerHTML = '';
@@ -1564,7 +1541,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     const optBtn = document.createElement('div');
                     optBtn.className = 'quiz-option';
 
-                    // Add letters A, B, C, D
                     const letter = String.fromCharCode(65 + optIndex);
                     optBtn.innerHTML = `<strong style="color:var(--text-muted); width: 20px;">${letter}.</strong> ${optText}`;
 
@@ -1583,9 +1559,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Grade Logic
         function gradeQuiz() {
-            clearInterval(quizTimerInterval); // Stop the clock
+            clearInterval(quizTimerInterval); 
 
             let score = 0;
             const feedbackContainer = el('quizFeedbackContainer');
@@ -1598,7 +1573,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const feedbackCard = document.createElement('div');
                 feedbackCard.className = `quiz-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
 
-                // FIX: Handle unanswered questions gracefully without crashing
                 const userAnswerText = userAnswers[i] !== null ? q.options[userAnswers[i]] : "<span style='color:#ef4444; font-weight: bold;'>Skipped (No Answer)</span>";
 
                 feedbackCard.innerHTML = `
@@ -1630,7 +1604,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             showQuizPhase('quizResults');
             
-            // FIX: Snap the scroll view back to the top of the container, NOT the window!
             const examWrap = el('quizExamWrap');
             if (examWrap) examWrap.scrollTop = 0;
             const reviewWrap = document.querySelector('#quizScreen .fc-review-wrap');
@@ -1638,7 +1611,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         el('submitQuizBtn')?.addEventListener('click', () => {
-            // FIX: Remove browser confirm() completely. Just show a toast and grade it!
             const missedCount = userAnswers.filter(a => a === null).length;
             if (missedCount > 0) {
                 showToast(`⚠️ Submitting with ${missedCount} unanswered questions!`);
@@ -1654,15 +1626,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const navResearch = $('navResearchBtn');
     const workspace = $('workspace');
     const researchScreen = $('researchScreen');
-    
-    // Fallback if topHeader elements don't exist yet
     const topHeader = $('topHeader');
 
     function switchTab(tab) {
-        // Remove active class from nav buttons
         document.querySelectorAll('.nav-menu .nav-btn').forEach(b => b.classList.remove('active'));
         
-        // Hide both main screens
         workspace?.classList.add('hidden');
         researchScreen?.classList.add('hidden');
         document.body.classList.remove('research-mode');
@@ -1703,7 +1671,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let drConversation = [];
     let drDocumentMarkdown = "";
 
-    // Click on suggestion cards
     document.querySelectorAll('.dr-card').forEach(card => {
         card.addEventListener('click', () => {
             drInput.value = card.querySelector('p').innerText;
@@ -1772,13 +1739,11 @@ Writing style:
         drDocumentMarkdown = "";
         drFollowupPanel?.classList.add('hidden');
 
-        // UI Transition
         drHome.classList.add('hidden');
         drResults.classList.remove('hidden');
         drQueryTitle.innerText = query;
         drBadge.style.display = drCheckbox.checked ? 'flex' : 'none';
 
-        // INJECT SKELETON LOADER FOR DEEP RESEARCH
         drOutput.innerHTML = `
             <div class="skeleton-wrapper">
                 <div class="skeleton-title"></div>
@@ -1850,16 +1815,20 @@ Writing style:
         drFollowupSubmit.disabled = true;
         drFollowupSubmit.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
 
-        // 1. Immediately append the user's question to the document markdown
-        drDocumentMarkdown += `\n\n---\n\n### Follow-up Question\n${followup}\n\n### Follow-up Answer\n`;
-        
-        // 2. Render the document instantly so the user sees their question right away
-        drOutput.innerHTML = marked.parse(drDocumentMarkdown);
-        drOutput.scrollTop = drOutput.scrollHeight;
+        // 1. Append the question to the document markdown immediately
+        const questionMarkdown = `\n\n---\n\n### Follow-up Question\n${followup}\n\n### Follow-up Answer\n`;
+        drDocumentMarkdown += questionMarkdown;
 
-        // 3. Create a temporary span inside the output where the new streaming answer will go
+        // 2. Render the current document (including the new question)
+        drOutput.innerHTML = marked.parse(drDocumentMarkdown);
+        
+        // 3. Create a dedicated container just for the incoming streaming answer
         const streamContainer = document.createElement('div');
+        streamContainer.className = 'followup-stream-container';
         drOutput.appendChild(streamContainer);
+        
+        // Scroll to the bottom so the user can see their question
+        drOutput.scrollTop = drOutput.scrollHeight;
 
         const contextWindow = drConversation.slice(-3)
             .map((turn, idx) => `Turn ${idx + 1}\nUser: ${turn.question}\nAssistant: ${turn.answer}`)
@@ -1882,7 +1851,7 @@ Writing style:
             if (!res.ok) throw new Error("Follow-up request failed");
             const data = await res.json();
 
-            // 4. Stream the new answer into the temporary container
+            // 4. Stream ONLY the new answer into the streamContainer
             await streamText(streamContainer, data.response, () => {
                 if (window.renderMathInElement) {
                     renderMathInElement(drOutput, {
@@ -1895,7 +1864,7 @@ Writing style:
                 renderMermaidDiagrams();
             });
 
-            // 5. Once streaming is done, officially save the new answer to the master markdown
+            // 5. Once streaming is complete, add the answer to the master markdown
             drDocumentMarkdown += data.response;
 
             drConversation.push({
@@ -1904,13 +1873,14 @@ Writing style:
             });
 
             drFollowupInput.value = '';
-            drOutput.scrollTop = drOutput.scrollHeight;
             showToast("Follow-up answered");
         } catch (e) {
             showToast(e.message || "Follow-up failed");
+            streamContainer.innerHTML = `<span style="color:#ef4444; font-weight:600;">Failed to generate response.</span>`;
         } finally {
             drFollowupSubmit.disabled = false;
             drFollowupSubmit.innerHTML = '<i class="fa-solid fa-arrow-up"></i>';
+            drOutput.scrollTop = drOutput.scrollHeight;
         }
-    }   
-})();
+    }
+});
