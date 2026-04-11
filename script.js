@@ -1850,6 +1850,17 @@ Writing style:
         drFollowupSubmit.disabled = true;
         drFollowupSubmit.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
 
+        // 1. Immediately append the user's question to the document markdown
+        drDocumentMarkdown += `\n\n---\n\n### Follow-up Question\n${followup}\n\n### Follow-up Answer\n`;
+        
+        // 2. Render the document instantly so the user sees their question right away
+        drOutput.innerHTML = marked.parse(drDocumentMarkdown);
+        drOutput.scrollTop = drOutput.scrollHeight;
+
+        // 3. Create a temporary span inside the output where the new streaming answer will go
+        const streamContainer = document.createElement('div');
+        drOutput.appendChild(streamContainer);
+
         const contextWindow = drConversation.slice(-3)
             .map((turn, idx) => `Turn ${idx + 1}\nUser: ${turn.question}\nAssistant: ${turn.answer}`)
             .join("\n\n");
@@ -1871,25 +1882,26 @@ Writing style:
             if (!res.ok) throw new Error("Follow-up request failed");
             const data = await res.json();
 
-            const followupBlock = `\n\n---\n\n### Follow-up Question\n${followup}\n\n### Follow-up Answer\n${data.response}`;
-            const merged = drDocumentMarkdown + followupBlock;
+            // 4. Stream the new answer into the temporary container
+            await streamText(streamContainer, data.response, () => {
+                if (window.renderMathInElement) {
+                    renderMathInElement(drOutput, {
+                        delimiters: [
+                            { left: "$$", right: "$$", display: true },
+                            { left: "$", right: "$", display: false }
+                        ]
+                    });
+                }
+                renderMermaidDiagrams();
+            });
 
-            drOutput.innerHTML = marked.parse(merged);
-            if (window.renderMathInElement) {
-                renderMathInElement(drOutput, {
-                    delimiters: [
-                        { left: "$$", right: "$$", display: true },
-                        { left: "$", right: "$", display: false }
-                    ]
-                });
-            }
+            // 5. Once streaming is done, officially save the new answer to the master markdown
+            drDocumentMarkdown += data.response;
 
             drConversation.push({
                 question: followup,
                 answer: data.response,
             });
-
-            drDocumentMarkdown = merged;
 
             drFollowupInput.value = '';
             drOutput.scrollTop = drOutput.scrollHeight;
@@ -1900,5 +1912,5 @@ Writing style:
             drFollowupSubmit.disabled = false;
             drFollowupSubmit.innerHTML = '<i class="fa-solid fa-arrow-up"></i>';
         }
-    }
-});
+    }   
+})();
