@@ -137,15 +137,35 @@ async function executeResearchFollowup() {
         if (!res.ok) throw new Error("Follow-up request failed");
         const data = await res.json();
 
-        const followupBlock = `\n\n---\n\n### Follow-up Question\n${followup}\n\n### Follow-up Answer\n${data.response}`;
-        const merged = drDocumentMarkdown + followupBlock;
+        const followupPrefix = `\n\n---\n\n### Follow-up Question\n${followup}\n\n### Follow-up Answer\n`;
+        const merged = drDocumentMarkdown + followupPrefix + data.response;
 
-        drOutput.innerHTML = marked.parse(merged);
+        // Stream only the follow-up answer while keeping prior research visible.
+        drOutput.classList.remove('empty-state');
+        drOutput.classList.add('typing-cursor');
+        let cursor = 0;
+        await new Promise(resolve => {
+            const timer = setInterval(() => {
+                cursor += 8;
+                const partial = data.response.substring(0, cursor);
+                drOutput.innerHTML = marked.parse(drDocumentMarkdown + followupPrefix + partial);
+                drOutput.scrollTop = drOutput.scrollHeight;
+
+                if (cursor >= data.response.length) {
+                    clearInterval(timer);
+                    drOutput.innerHTML = marked.parse(merged);
+                    drOutput.classList.remove('typing-cursor');
+                    resolve();
+                }
+            }, 16);
+        });
+
         if (window.renderMathInElement) {
             renderMathInElement(drOutput, {
                 delimiters: [{ left: "$$", right: "$$", display: true }, { left: "$", right: "$", display: false }]
             });
         }
+        renderMermaidDiagrams(drOutput);
 
         drConversation.push({ question: followup, answer: data.response });
         drDocumentMarkdown = merged;
