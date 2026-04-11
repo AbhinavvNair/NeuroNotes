@@ -93,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // When clicking away, blur the dropdown so the arrow resets
     document.addEventListener('click', (event) => {
         const wrapper = document.querySelector('.select-wrapper');
         if (!wrapper || !presetSelect) return;
@@ -101,6 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Password toggle (eye icon)
     document.querySelectorAll('.password-toggle').forEach(t => {
         t.addEventListener('click', () => {
             const target = document.getElementById(t.dataset.target);
@@ -536,12 +538,18 @@ document.addEventListener('DOMContentLoaded', () => {
         container.classList.remove('empty-state');
         container.classList.add('typing-cursor');
         let i = 0, buffer = '';
+        
+        // Find the actual scrollable parent so it scrolls smoothly during deep research
+        const scrollTarget = container.closest('.markdown-content') || container;
+        
         return new Promise(resolve => {
             const timer = setInterval(() => {
                 buffer += rawText.substring(i, i + 15); // Fast chunking
                 i += 15;
                 container.innerHTML = marked.parse(buffer);
-                container.scrollTop = container.scrollHeight;
+                
+                // Auto-scroll as text streams in
+                scrollTarget.scrollTop = scrollTarget.scrollHeight;
 
                 if (i >= rawText.length) {
                     clearInterval(timer);
@@ -1815,20 +1823,18 @@ Writing style:
         drFollowupSubmit.disabled = true;
         drFollowupSubmit.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
 
-        // 1. Append the question to the document markdown immediately
-        const questionMarkdown = `\n\n---\n\n### Follow-up Question\n${followup}\n\n### Follow-up Answer\n`;
-        drDocumentMarkdown += questionMarkdown;
-
-        // 2. Render the current document (including the new question)
-        drOutput.innerHTML = marked.parse(drDocumentMarkdown);
+        // 1. Immediately append the question to the UI and Markdown
+        const questionBlock = `\n\n---\n\n### Follow-up Question\n${followup}\n\n### Follow-up Answer\n`;
+        drDocumentMarkdown += questionBlock;
         
-        // 3. Create a dedicated container just for the incoming streaming answer
+        // Render the document up to the question so the user sees it immediately
+        drOutput.innerHTML = marked.parse(drDocumentMarkdown);
+        drOutput.scrollTop = drOutput.scrollHeight;
+
+        // 2. Create the streaming container AT THE END of drOutput for the new answer
         const streamContainer = document.createElement('div');
         streamContainer.className = 'followup-stream-container';
         drOutput.appendChild(streamContainer);
-        
-        // Scroll to the bottom so the user can see their question
-        drOutput.scrollTop = drOutput.scrollHeight;
 
         const contextWindow = drConversation.slice(-3)
             .map((turn, idx) => `Turn ${idx + 1}\nUser: ${turn.question}\nAssistant: ${turn.answer}`)
@@ -1851,7 +1857,7 @@ Writing style:
             if (!res.ok) throw new Error("Follow-up request failed");
             const data = await res.json();
 
-            // 4. Stream ONLY the new answer into the streamContainer
+            // 3. Stream the new answer directly into the streamContainer!
             await streamText(streamContainer, data.response, () => {
                 if (window.renderMathInElement) {
                     renderMathInElement(drOutput, {
@@ -1864,7 +1870,7 @@ Writing style:
                 renderMermaidDiagrams();
             });
 
-            // 5. Once streaming is complete, add the answer to the master markdown
+            // 4. Update the master markdown document with the generated answer once done
             drDocumentMarkdown += data.response;
 
             drConversation.push({
@@ -1873,6 +1879,7 @@ Writing style:
             });
 
             drFollowupInput.value = '';
+            drOutput.scrollTop = drOutput.scrollHeight;
             showToast("Follow-up answered");
         } catch (e) {
             showToast(e.message || "Follow-up failed");
@@ -1880,7 +1887,6 @@ Writing style:
         } finally {
             drFollowupSubmit.disabled = false;
             drFollowupSubmit.innerHTML = '<i class="fa-solid fa-arrow-up"></i>';
-            drOutput.scrollTop = drOutput.scrollHeight;
         }
     }
 });
