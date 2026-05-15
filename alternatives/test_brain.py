@@ -50,3 +50,8 @@ try:
 except Exception as e:
     print(f"\n❌ CRITICAL ERROR: {e}")
     print("Check if model.py matches the training config (384/6/6).")
+    
+except FileNotFoundError as fnf_error:
+    print(f"\n❌ FILE NOT FOUND: {fnf_error}")
+    print("Make sure 'data/tokenizer.model' and 'data/edullm_model.pt' exist.")
+    
