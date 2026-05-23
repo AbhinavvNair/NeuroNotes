@@ -1020,4 +1020,17 @@ html[data-theme=terminal] .skeleton-line {
     box-shadow: 0 0 10px rgba(34, 197, 94, 0.1);
 }
 
+html[data-theme=terminal] .skeleton-title,
+html[data-theme=terminal] .skeleton-subtitle,
+html[data-theme=terminal] .skeleton-line {
+    background: linear-gradient(90deg, 
+        rgba(34, 197, 94, 0.05) 25%, 
+        rgba(34, 197, 94, 0.2) 50%, 
+        rgba(34, 197, 94, 0.05) 75%
+    );
+    background-size: 200% 100%;
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.1);
+}
+
+
 
