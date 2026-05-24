@@ -1889,4 +1889,31 @@ Writing style:
             drFollowupSubmit.innerHTML = '<i class="fa-solid fa-arrow-up"></i>';
         }
     }
+
+    const renderMermaidDiagrams = () => {
+        if (window.mermaid) {
+            const mermaidBlocks = drOutput.querySelectorAll('pre code.language-mermaid');
+            mermaidBlocks.forEach((block, idx) => {
+                const parent = block.parentElement;
+                if (!parent) return;
+
+                const graphDefinition = block.textContent;
+                const graphId = `mermaidGraph${idx}`;
+
+                const graphContainer = document.createElement('div');
+                graphContainer.id = graphId;
+                graphContainer.className = 'mermaid-graph';
+                parent.replaceWith(graphContainer);
+
+                try {
+                    window.mermaid.render(graphId, graphDefinition, svgCode => {
+                        graphContainer.innerHTML = svgCode;
+                    });
+                } catch (e) {
+                    graphContainer.innerHTML = `<span style="color:#ef4444; font-weight:600;">Failed to render Mermaid diagram.</span>`;
+                    console.error("Mermaid render error:", e);
+                }
+            });
+        }
+    }
 });
