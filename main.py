@@ -14,6 +14,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 
 from app import models, schemas
+from app.database import Base, engine
 from app.dependencies import get_db
 from app.auth import (
     hash_password,
@@ -56,6 +57,7 @@ def _apply_rate_limit(email: str) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("🔌 Initializing NeuroNotes Pro...")
+    Base.metadata.create_all(bind=engine)
     if not API_KEY:
         print("❌ ERROR: 'GROQ_API_KEY' not found in .env!")
     else:

@@ -27,6 +27,28 @@ function updateUserUI(email) {
     avEl.textContent = email.substring(0, 2).toUpperCase();
 }
 
+async function readErrorMessage(response, fallbackMessage) {
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+        try {
+            const payload = await response.json();
+            if (Array.isArray(payload.detail)) {
+                return payload.detail[0]?.msg || fallbackMessage;
+            }
+            return payload.detail || fallbackMessage;
+        } catch {
+            return fallbackMessage;
+        }
+    }
+
+    try {
+        const text = await response.text();
+        return text.trim() || fallbackMessage;
+    } catch {
+        return fallbackMessage;
+    }
+}
+
 export async function validateSession() {
     if (!(localStorage.getItem("access_token") || sessionStorage.getItem("access_token"))) {
         return forceLogout("Please login to continue");
@@ -88,9 +110,7 @@ export function initAuth() {
                     body: JSON.stringify({ email, password: pass })
                 });
                 if (!r.ok) {
-                    const err = await r.json();
-                    const msg = Array.isArray(err.detail) ? err.detail[0]?.msg : err.detail;
-                    throw new Error(msg || "Registration failed");
+                    throw new Error(await readErrorMessage(r, "Registration failed"));
                 }
                 showToast("Account created. Please login.");
                 document.getElementById('toggleAuthMode').click();
@@ -104,7 +124,7 @@ export function initAuth() {
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
                 body: fd
             });
-            if (!r.ok) throw new Error((await r.json()).detail || "Invalid credentials");
+            if (!r.ok) throw new Error(await readErrorMessage(r, "Invalid credentials"));
             const loginData = await r.json();
             sessionStorage.setItem("access_token", loginData.access_token);
             updateUserUI(email);
