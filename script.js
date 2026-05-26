@@ -1900,6 +1900,11 @@ Writing style:
                 const graphDefinition = block.textContent;
                 const graphId = `mermaidGraph${idx}`;
 
+                const existingGraph = document.getElementById(graphId);
+                if (existingGraph) {
+                    existingGraph.remove();
+                }
+
                 const graphContainer = document.createElement('div');
                 graphContainer.id = graphId;
                 graphContainer.className = 'mermaid-graph';
