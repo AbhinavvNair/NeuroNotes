@@ -1,4 +1,8 @@
-export const API_BASE = window.location.origin;
+const DEFAULT_API_BASE = "http://127.0.0.1:8000";
+
+export const API_BASE = window.location.origin && window.location.port === "8000"
+    ? window.location.origin
+    : DEFAULT_API_BASE;
 
 export const showToast = (msg) => {
     const toast = document.getElementById('toast');
