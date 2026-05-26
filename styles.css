@@ -224,6 +224,55 @@ body.resizing{cursor:col-resize!important;user-select:none;}
 .chip:hover{color:var(--text-main);background:rgba(255,255,255,0.05);}
 .panel-footer{height:var(--bottom-bar-height);display:flex;align-items:center;padding:0 15px;border-top:1px solid var(--border);font-size:.75rem;color:var(--text-muted);background:rgba(0,0,0,0.2);flex-shrink:0;}
 .markdown-content{flex:1;padding:20px;overflow-y:auto;line-height:1.7;background:var(--bg-input);color:var(--text-main);}
+
+/* === AI GENERATED OUTPUT STYLING === */
+#aiOutput, .dr-output-area, .markdown-content {
+    /* Ensure primary text uses the main text color for contrast */
+    color: var(--text-main);
+}
+
+/* Headings inside AI output should stand out but remain readable */
+#aiOutput h1, #aiOutput h2, .dr-output-area h1, .dr-output-area h2 {
+    color: #7EE7B8; /* soft mint green */
+    text-shadow: 0 1px 0 rgba(0,0,0,0.45);
+}
+#aiOutput h3, #aiOutput h4, .dr-output-area h3, .dr-output-area h4 {
+    color: #9FECCF;
+}
+
+/* Paragraphs and list items — high contrast and comfortable line-height */
+#aiOutput p, .dr-output-area p, .markdown-content p,
+#aiOutput li, .dr-output-area li, .markdown-content li {
+    color: var(--text-main);
+    line-height: 1.9;
+}
+
+/* Links and inline code */
+#aiOutput a, .dr-output-area a { color: var(--primary); text-decoration: underline; }
+#aiOutput code, .markdown-content code, .dr-output-area code {
+    color: #e6fffa;
+    background: rgba(255,255,255,0.03);
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.95em;
+}
+
+/* Blockquotes receive a subtle tint to be distinguishable */
+#aiOutput blockquote, .markdown-content blockquote, .dr-output-area blockquote {
+    border-left: 3px solid rgba(126,231,184,0.18);
+    padding-left: 14px;
+    color: var(--text-muted);
+    background: rgba(126,231,184,0.02);
+    border-radius: 6px;
+}
+
+/* Strong/emphasis tweaks */
+#aiOutput strong, .markdown-content strong, .dr-output-area strong { color: var(--text-main); font-weight:700; }
+
+/* Light theme adjustments */
+html[data-theme=light] #aiOutput h1, html[data-theme=light] .dr-output-area h1 { color: #0b5fff; }
+
 .icon-btn{width:30px;height:30px;border-radius:4px;border:1px solid transparent;background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .icon-btn:hover{color:var(--text-main);background:rgba(255,255,255,0.1);}
 
